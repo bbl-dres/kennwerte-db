@@ -136,65 +136,93 @@ function renderDashboard() {
     }
 
     // Single-pass aggregation
-    const catMap = {}, srcMap = {}, yearMap = {};
-    let withCostCount = 0, withGFCount = 0;
-    const costValues = [];
+    const catMap = {}, artMap = {}, srcMap = {}, yearMap = {}, qualMap = {};
+    let withCostGF = 0, withCostGV = 0;
+    const costGFValues = [], costGVValues = [], gfValues = [];
+    const scatterPoints = [];
     const sources = new Set();
 
     all.forEach(p => {
-        if (p.chf_per_m2_gf != null) { withCostCount++; costValues.push(p.chf_per_m2_gf); }
-        if (p.gf_m2 != null) withGFCount++;
+        if (p.chf_per_m2_gf != null) { withCostGF++; costGFValues.push(p.chf_per_m2_gf); }
+        if (p.chf_per_m3_gv != null) { withCostGV++; costGVValues.push(p.chf_per_m3_gv); }
+        if (p.gf_m2 != null) gfValues.push(p.gf_m2);
         sources.add(p.data_source);
 
-        const cat = p.category_label || p.category || 'Andere';
-        if (!catMap[cat]) catMap[cat] = { total: 0, withBM: 0, values: [] };
-        catMap[cat].total++;
-        if (p.chf_per_m2_gf != null) { catMap[cat].withBM++; catMap[cat].values.push(p.chf_per_m2_gf); }
+        // Scatter data
+        if (p.gf_m2 != null && p.chf_per_m2_gf != null) {
+            scatterPoints.push({ id: p.id, x: p.gf_m2, y: p.chf_per_m2_gf, art: p.arbeiten_type, name: p._displayName });
+        }
 
+        // Category
+        const cat = p.category_label || p.category || 'Andere';
+        if (!catMap[cat]) catMap[cat] = { total: 0, values: [] };
+        catMap[cat].total++;
+        if (p.chf_per_m2_gf != null) catMap[cat].values.push(p.chf_per_m2_gf);
+
+        // Art der Arbeiten
+        const art = p.arbeiten_type || 'ANDERE';
+        if (!artMap[art]) artMap[art] = { total: 0, values: [] };
+        artMap[art].total++;
+        if (p.chf_per_m2_gf != null) artMap[art].values.push(p.chf_per_m2_gf);
+
+        // Source
         const src = p.data_source || 'andere';
         if (!srcMap[src]) srcMap[src] = { total: 0, withBM: 0 };
         srcMap[src].total++;
         if (p.chf_per_m2_gf != null) srcMap[src].withBM++;
 
+        // Year
         if (p.completion_year) yearMap[p.completion_year] = (yearMap[p.completion_year] || 0) + 1;
+
+        // Quality
+        const q = p._qualityGrade || 'D';
+        qualMap[q] = (qualMap[q] || 0) + 1;
     });
 
-    const stats = computeStats(costValues);
+    const statsGF = costGFValues.length >= 2 ? computeStats(costGFValues) : null;
+    const statsGV = costGVValues.length >= 2 ? computeStats(costGVValues) : null;
+    const medianGF = gfValues.length ? gfValues.sort((a, b) => a - b)[Math.floor(gfValues.length / 2)] : null;
+
+    // Category + Art tables
+    const avgOf = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
     const catRows = Object.entries(catMap).sort((a, b) => b[1].total - a[1].total);
-    const maxAvg = Math.max(...catRows.map(([, s]) => s.values.length ? s.values.reduce((a, b) => a + b, 0) / s.values.length : 0));
+    const artRows = Object.entries(artMap).sort((a, b) => b[1].total - a[1].total);
+    const maxCatAvg = Math.max(...catRows.map(([, s]) => avgOf(s.values) || 0), 1);
+    const maxArtAvg = Math.max(...artRows.map(([, s]) => avgOf(s.values) || 0), 1);
+
+    // Year chart
     const years = Object.entries(yearMap).sort((a, b) => a[0] - b[0]);
-    const maxYear = Math.max(...years.map(([, n]) => n));
+    const maxYear = Math.max(...years.map(([, n]) => n), 1);
+
+    // Scatter plot
+    const scatterHTML = buildScatterPlot(scatterPoints);
+
+    // Quality distribution
+    const maxQual = Math.max(...Object.values(qualMap), 1);
+    const qualLabels = { A: 'A \u2014 Vollständig', B: 'B \u2014 Gut', C: 'C \u2014 Teilweise', D: 'D \u2014 Minimal' };
+
+    // Render summary table helper
+    const summaryTable = (rows, maxAvg, labelFn) => rows.map(([key, s]) => {
+        const avg = avgOf(s.values);
+        const barW = avg ? Math.round((avg / maxAvg) * 100) : 0;
+        return `<div class="dash-row">
+            <div class="dash-row-label">${labelFn(key)}</div>
+            <div class="dash-row-count">${s.total}</div>
+            <div class="dash-row-avg">${avg ? fmtN(avg) : EMPTY}</div>
+            <div class="cost-bar-wrap"><div class="cost-bar" style="width:${barW}%"></div></div>
+        </div>`;
+    }).join('');
 
     document.getElementById('dashboardContent').innerHTML = `
-        <h2 style="margin-bottom:var(--space-6)">Dashboard</h2>
         <div class="stats-boxes" style="margin-bottom:var(--space-6)">
             <div class="stat-box"><div class="stat-box-value">${all.length}</div><div class="stat-box-label">Projekte</div></div>
-            <div class="stat-box"><div class="stat-box-value">${withGFCount}</div><div class="stat-box-label">mit ${abbr('GF', 'Geschossfläche')}</div></div>
-            <div class="stat-box"><div class="stat-box-value">${withCostCount}</div><div class="stat-box-label">mit Kosten</div></div>
-            <div class="stat-box"><div class="stat-box-value accent">${stats.median ? fmtN(stats.median) : EMPTY}</div><div class="stat-box-label">Median CHF/m\u00B2</div></div>
+            <div class="stat-box"><div class="stat-box-value">${withCostGF}</div><div class="stat-box-label">mit CHF/m\u00B2</div></div>
+            <div class="stat-box"><div class="stat-box-value accent">${statsGF ? fmtN(statsGF.median) : EMPTY}</div><div class="stat-box-label">Median CHF/m\u00B2 GF</div></div>
+            <div class="stat-box"><div class="stat-box-value">${medianGF ? fmtN(medianGF) : EMPTY}</div><div class="stat-box-label">Median ${abbr('GF', 'Geschossfläche')} m\u00B2</div></div>
             <div class="stat-box"><div class="stat-box-value">${sources.size}</div><div class="stat-box-label">Quellen</div></div>
         </div>
-        ${costValues.length > 0 ? `<div class="detail-card" style="margin-bottom:var(--space-4)">
-            <div class="detail-card-header">CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')} \u2014 Verteilung</div>
-            <div class="detail-card-body">${renderBoxPlot(stats)}</div>
-        </div>` : ''}
+
         <div class="detail-grid">
-            <div class="detail-card">
-                <div class="detail-card-header">Nach Kategorie</div>
-                <div class="detail-card-body">
-                    ${catRows.map(([cat, s]) => {
-                        const avg = s.values.length ? Math.round(s.values.reduce((a, b) => a + b, 0) / s.values.length) : null;
-                        const barW = avg ? Math.round((avg / maxAvg) * 100) : 0;
-                        return `<div class="cost-row" style="grid-template-columns:1fr 40px 80px 100px">
-                            <div class="cost-name">${esc(cat)}</div>
-                            <div class="cost-amount">${s.total}</div>
-                            <div class="cost-amount">${avg ? fmtN(avg) : EMPTY}</div>
-                            <div class="cost-bar-wrap"><div class="cost-bar" style="width:${barW}%"></div></div>
-                        </div>`;
-                    }).join('')}
-                    <div style="font-size:var(--font-size-xs);color:var(--neutral-400);margin-top:var(--space-2)">Spalten: Kategorie \u00B7 Anzahl \u00B7 \u00D8 CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')}</div>
-                </div>
-            </div>
             <div class="detail-card">
                 <div class="detail-card-header">Nach Quelle</div>
                 <div class="detail-card-body">
@@ -204,17 +232,117 @@ function renderDashboard() {
                     </div>`).join('')}
                 </div>
             </div>
+            <div class="detail-card">
+                <div class="detail-card-header">Datenqualität</div>
+                <div class="detail-card-body">
+                    ${['A', 'B', 'C', 'D'].map(g => {
+                        const n = qualMap[g] || 0;
+                        return `<div class="dash-row">
+                            <div class="dash-row-label"><span class="tag tag-sm tag-quality tag-quality-${g.toLowerCase()}">${g}</span> ${esc(qualLabels[g])}</div>
+                            <div class="dash-row-count">${n}</div>
+                            <div class="cost-bar-wrap" style="flex:1"><div class="cost-bar" style="width:${Math.round((n / maxQual) * 100)}%"></div></div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
         </div>
-        <div class="detail-card" style="margin-top:var(--space-4)">
-            <div class="detail-card-header">Projekte nach Fertigstellungsjahr</div>
-            <div class="detail-card-body" style="display:flex;align-items:flex-end;gap:2px;height:120px;padding-bottom:var(--space-6);position:relative" role="img" aria-label="Balkendiagramm: Projekte pro Jahr">
-                ${years.map(([year, n]) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
-                    <div style="width:100%;max-width:24px;background:var(--secondary-500);opacity:0.6;border-radius:2px 2px 0 0;height:${Math.round((n/maxYear)*100)}%;" title="${year}: ${n} Projekte"></div>
-                    <div style="font-size:10px;color:var(--neutral-400);margin-top:2px;transform:rotate(-45deg);white-space:nowrap">${year}</div>
-                </div>`).join('')}
+
+        <div class="detail-grid" style="margin-top:var(--space-4)">
+            ${scatterPoints.length >= 3 ? `<div class="detail-card">
+                <div class="detail-card-header">${abbr('GF', 'Geschossfläche')} vs. CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')}</div>
+                <div class="detail-card-body">${scatterHTML}</div>
+            </div>` : ''}
+            <div class="detail-card">
+                <div class="detail-card-header">Verteilung</div>
+                <div class="detail-card-body">
+                    ${statsGF ? `<div class="box-plot-section">
+                        <div class="box-plot-title">CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')}</div>
+                        ${renderBoxPlot(statsGF)}
+                    </div>` : ''}
+                    ${statsGV ? `<div class="box-plot-section" style="margin-top:var(--space-5)">
+                        <div class="box-plot-title">CHF/m\u00B3 ${abbr('GV', 'Gebäudevolumen')}</div>
+                        ${renderBoxPlot(statsGV)}
+                    </div>` : ''}
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-grid" style="margin-top:var(--space-4)">
+            <div class="detail-card">
+                <div class="detail-card-header">Nach Kategorie</div>
+                <div class="detail-card-body">
+                    <div class="dash-table-header"><span>Kategorie</span><span>n</span><span>\u00D8 CHF/m\u00B2</span><span></span></div>
+                    ${summaryTable(catRows, maxCatAvg, k => esc(k))}
+                </div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-card-header">Nach Art der Arbeiten</div>
+                <div class="detail-card-body">
+                    <div class="dash-table-header"><span>Art</span><span>n</span><span>\u00D8 CHF/m\u00B2</span><span></span></div>
+                    ${summaryTable(artRows, maxArtAvg, k => ART_LABELS[k] || esc(k))}
+                </div>
             </div>
         </div>
     `;
+
+    // Wire scatter dot clicks
+    document.getElementById('dashboardContent').addEventListener('click', e => {
+        const dot = e.target.closest('.scatter-dot[data-id]');
+        if (dot) showDetail(parseInt(dot.dataset.id));
+    });
+}
+
+// === Scatter Plot (pure CSS/HTML) ===
+function buildScatterPlot(points) {
+    if (points.length === 0) return '';
+    const maxX = Math.max(...points.map(p => p.x));
+    const maxY = Math.max(...points.map(p => p.y));
+    // Round up to nice numbers for axes
+    const niceMax = v => { const mag = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / mag) * mag; };
+    const xMax = niceMax(maxX);
+    const yMax = niceMax(maxY);
+
+    const artColors = {
+        NEUBAU: 'var(--tag-neubau)',
+        UMBAU_SANIERUNG: 'var(--tag-sanierung)',
+        UMBAU: 'var(--tag-umbau)',
+        UMBAU_ERWEITERUNG: 'var(--tag-erweiterung)',
+        UMBAU_TEILABBRUCH: 'var(--tag-abbruch)',
+        ABBRUCH: 'var(--tag-abbruch)'
+    };
+
+    const dots = points.map(p => {
+        const xPct = (p.x / xMax) * 100;
+        const yPct = (p.y / yMax) * 100;
+        const color = artColors[p.art] || 'var(--neutral-400)';
+        return `<div class="scatter-dot" style="left:${xPct}%;bottom:${yPct}%;background:${color}" data-id="${p.id}" title="${esc(p.name)}\n${fmtN(p.x)} m\u00B2 GF \u00B7 ${fmtN(p.y)} CHF/m\u00B2"></div>`;
+    }).join('');
+
+    // Y-axis labels (5 steps)
+    const yLabels = Array.from({ length: 6 }, (_, i) => {
+        const v = (yMax / 5) * i;
+        return `<span class="scatter-y-label" style="bottom:${(i / 5) * 100}%">${fmtN(v)}</span>`;
+    }).join('');
+
+    // X-axis labels (5 steps)
+    const xLabels = Array.from({ length: 6 }, (_, i) => {
+        const v = (xMax / 5) * i;
+        return `<span class="scatter-x-label" style="left:${(i / 5) * 100}%">${fmtN(v)}</span>`;
+    }).join('');
+
+    // Legend
+    const legendItems = Object.entries(ART_LABELS).filter(([k]) => points.some(p => p.art === k))
+        .map(([k, label]) => `<span class="scatter-legend-item"><span class="scatter-legend-dot" style="background:${artColors[k] || 'var(--neutral-400)'}"></span>${label}</span>`).join('');
+
+    return `<div class="scatter-wrap">
+        <div class="scatter-y-axis">${yLabels}</div>
+        <div class="scatter-area">
+            ${dots}
+            <div class="scatter-x-axis">${xLabels}</div>
+        </div>
+    </div>
+    <div class="scatter-axis-labels"><span>GF m\u00B2 \u2192</span></div>
+    <div class="scatter-legend">${legendItems}</div>`;
 }
 
 // === List View ===
