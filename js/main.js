@@ -122,12 +122,8 @@ function switchView(view) {
     render();
 }
 
-function render() {
-    if (App.currentView === 'dashboard') renderDashboard();
-    else if (App.currentView === 'gallery') renderGallery();
-    else if (App.currentView === 'list') renderList();
-    else if (App.currentView === 'map') renderMap();
-}
+const VIEW_RENDERERS = { dashboard: renderDashboard, gallery: renderGallery, list: renderList, map: renderMap };
+function render() { VIEW_RENDERERS[App.currentView]?.(); }
 
 // === Filter Modal ===
 function openFilterModal() {
@@ -138,9 +134,7 @@ function openFilterModal() {
         <div class="filter-group"><label>Kategorie</label><select id="fmCat">${optionsHTML(opts.categories, App.filters.category)}</select></div>
         <div class="filter-group"><label>Kanton</label><select id="fmCanton">${optionsHTML(opts.cantons, App.filters.canton)}</select></div>
         <div class="filter-group"><label>Art der Arbeiten</label><select id="fmArt">${optionsHTML(
-            [{ value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
-             { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }],
-            App.filters.arbeiten_type)}</select></div>
+            ARBEITEN_TYPES, App.filters.arbeiten_type)}</select></div>
         <div class="filter-group"><label>Jahr von</label><input type="number" id="fmYearFrom" value="${App.filters.yearFrom || ''}" placeholder="${opts.yearRange?.min_year || ''}"></div>
         <div class="filter-group"><label>Jahr bis</label><input type="number" id="fmYearTo" value="${App.filters.yearTo || ''}" placeholder="${opts.yearRange?.max_year || ''}"></div>
     </div>`;
@@ -182,8 +176,7 @@ function resetFilters() {
 function populateMultiFilters() {
     const opts = App.filterOptions;
     const arts = [
-        { value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
-        { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }
+        ...ARBEITEN_TYPES
     ];
     fillMultiFilter('mfSource', 'data_source', opts.dataSources || []);
     fillMultiFilter('mfCategory', 'category', opts.categories || []);
@@ -191,39 +184,44 @@ function populateMultiFilters() {
     fillMultiFilter('mfArt', 'arbeiten_type', arts);
 }
 
+const _multiFilterWired = new Set();
+
 function fillMultiFilter(containerId, filterKey, items) {
     const container = document.getElementById(containerId);
     const dropdown = container.querySelector('.multi-filter-dropdown');
     const btn = container.querySelector('.multi-filter-btn');
-    const baseLabel = btn.textContent.trim().replace(/\s*expand_more\s*/, '');
+    const baseLabel = btn.textContent.trim().replace(/\s*expand_more\s*/, '').split('\n')[0].trim();
 
     dropdown.innerHTML = items.map(item => {
         const checked = App.filters[filterKey]?.has(item.value) ? 'checked' : '';
         return `<label class="multi-filter-option"><input type="checkbox" value="${item.value}" ${checked}> ${esc(item.label)}</label>`;
     }).join('');
 
-    btn.addEventListener('click', e => {
-        e.stopPropagation();
-        document.querySelectorAll('.multi-filter.open').forEach(mf => { if (mf !== container) mf.classList.remove('open'); });
-        container.classList.toggle('open');
-    });
+    // Wire listeners only once per container
+    if (!_multiFilterWired.has(containerId)) {
+        _multiFilterWired.add(containerId);
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            document.querySelectorAll('.multi-filter.open').forEach(mf => { if (mf !== container) mf.classList.remove('open'); });
+            container.classList.toggle('open');
+        });
+        dropdown.addEventListener('change', () => {
+            const checked = [...dropdown.querySelectorAll('input:checked')].map(cb => cb.value);
+            if (checked.length > 0) App.filters[filterKey] = new Set(checked);
+            else delete App.filters[filterKey];
+            container.classList.toggle('has-value', checked.length > 0);
+            btn.innerHTML = checked.length > 0
+                ? `${baseLabel} (${checked.length}) <span class="material-icons-outlined">expand_more</span>`
+                : `${baseLabel} <span class="material-icons-outlined">expand_more</span>`;
+            applyFilters();
+        });
+    }
 
-    dropdown.addEventListener('change', () => {
-        const checked = [...dropdown.querySelectorAll('input:checked')].map(cb => cb.value);
-        if (checked.length > 0) App.filters[filterKey] = new Set(checked);
-        else delete App.filters[filterKey];
-        container.classList.toggle('has-value', checked.length > 0);
-        const label = baseLabel.split('\n')[0].trim();
-        btn.innerHTML = checked.length > 0
-            ? `${label} (${checked.length}) <span class="material-icons-outlined">expand_more</span>`
-            : `${label} <span class="material-icons-outlined">expand_more</span>`;
-        applyFilters();
-    });
-
+    // Update visual state
     const activeSet = App.filters[filterKey];
     if (activeSet?.size) {
         container.classList.add('has-value');
-        btn.innerHTML = `${baseLabel.split('\n')[0].trim()} (${activeSet.size}) <span class="material-icons-outlined">expand_more</span>`;
+        btn.innerHTML = `${baseLabel} (${activeSet.size}) <span class="material-icons-outlined">expand_more</span>`;
     }
 }
 
@@ -232,8 +230,9 @@ document.addEventListener('click', () => {
 });
 
 function optionsHTML(opts, selected) {
+    const isSelected = selected instanceof Set ? v => selected.has(v) : v => v === selected;
     return `<option value="">Alle</option>` + (opts || []).map(o =>
-        `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${esc(o.label)}</option>`
+        `<option value="${o.value}"${isSelected(o.value) ? ' selected' : ''}>${esc(o.label)}</option>`
     ).join('');
 }
 
@@ -252,7 +251,7 @@ async function init() {
         return;
     }
 
-    App.allProjects = App.db.getProjects({});
+    App.allProjects = App.db.getProjects();
     App.filterOptions = App.db.getFilterOptions();
 
     const isOverlay = restoreFromUrl();
@@ -315,7 +314,10 @@ async function init() {
     // Initial render
     document.getElementById('loadingView').classList.remove('active');
     if (!isOverlay) {
-        switchView(App.currentView);
+        // Set view UI state without rendering (applyFilters will render)
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === App.currentView));
+        document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+        document.getElementById(App.currentView + 'View')?.classList.add('active');
         applyFilters();
     }
 }

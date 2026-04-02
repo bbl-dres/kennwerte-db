@@ -24,8 +24,36 @@ const fmtMio = v => v != null ? (v >= 1e6 ? `CHF ${(v / 1e6).toFixed(1)} Mio.` :
 const fmtArea = v => v != null ? `${fmtN(v)} m\u00B2` : '\u2014';
 const fmtVol = v => v != null ? `${fmtN(v)} m\u00B3` : '\u2014';
 
-// === Escape HTML ===
-function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+// === Escape HTML (reuse single element for performance) ===
+const _escEl = document.createElement('div');
+function esc(s) { _escEl.textContent = s || ''; return _escEl.innerHTML; }
+
+// === Statistics (shared by dashboard, peer comparison, estimator) ===
+function percentile(arr, p) {
+    if (!arr.length) return null;
+    const i = (p / 100) * (arr.length - 1);
+    const lo = Math.floor(i);
+    return lo === Math.ceil(i) ? arr[lo] : arr[lo] + (arr[Math.ceil(i)] - arr[lo]) * (i - lo);
+}
+
+function computeStats(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    return { min: sorted[0], p25: percentile(sorted, 25), median: percentile(sorted, 50), p75: percentile(sorted, 75), max: sorted[sorted.length - 1] };
+}
+
+function renderBoxPlot(stats, markerValue) {
+    const range = stats.max - stats.min || 1;
+    const pos = v => ((v - stats.min) / range) * 100;
+    return `<div class="box-plot">
+        <div class="box-plot-whisker" style="left:${pos(stats.min)}%;width:${pos(stats.max) - pos(stats.min)}%"></div>
+        <div class="box-plot-box" style="left:${pos(stats.p25)}%;width:${pos(stats.p75) - pos(stats.p25)}%"></div>
+        <div class="box-plot-median" style="left:${pos(stats.median)}%"></div>
+        ${markerValue != null ? `<div class="box-plot-marker" style="left:${pos(markerValue)}%" title="${fmtN(markerValue)}"></div>` : ''}
+    </div>
+    <div class="box-plot-labels">
+        <span>${fmtN(stats.min)}</span><span>P25: ${fmtN(stats.p25)}</span><span>Median: ${fmtN(stats.median)}</span><span>P75: ${fmtN(stats.p75)}</span><span>${fmtN(stats.max)}</span>
+    </div>`;
+}
 
 // === Tag helpers ===
 function tagHTML(art) {
@@ -68,6 +96,13 @@ function completenessClass(p) {
     if (p.construction_cost_total || p.gf_m2) return 'data-partial';
     return 'data-minimal';
 }
+
+const ARBEITEN_TYPES = [
+    { value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
+    { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }
+];
+
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 const CATEGORY_ICONS = {
     verwaltung: 'business', bundeshaus: 'account_balance', ausland: 'public',

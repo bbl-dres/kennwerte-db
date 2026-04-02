@@ -7,6 +7,14 @@ let carouselIndex = 0;
 function openCarousel(images, startIndex = 0) {
     carouselImages = images;
     carouselIndex = startIndex;
+    // Build thumbnails once
+    const thumbs = document.getElementById('carouselThumbnails');
+    thumbs.innerHTML = images.map((im, idx) =>
+        `<div class="carousel-thumb" style="background-image:url('${im}')" data-idx="${idx}"></div>`
+    ).join('');
+    thumbs.querySelectorAll('.carousel-thumb').forEach(t => {
+        t.addEventListener('click', () => goToCarouselImage(parseInt(t.dataset.idx)));
+    });
     updateCarouselView();
     document.getElementById('carouselOverlay').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -38,10 +46,9 @@ function updateCarouselView() {
     img.src = carouselImages[carouselIndex];
     document.querySelector('.carousel-nav-btn.prev').disabled = carouselIndex === 0;
     document.querySelector('.carousel-nav-btn.next').disabled = carouselIndex === carouselImages.length - 1;
-    const thumbs = document.getElementById('carouselThumbnails');
-    thumbs.innerHTML = carouselImages.map((im, idx) =>
-        `<div class="carousel-thumb${idx === carouselIndex ? ' active' : ''}" style="background-image:url('${im}')" onclick="goToCarouselImage(${idx})"></div>`
-    ).join('');
+    document.querySelectorAll('#carouselThumbnails .carousel-thumb').forEach((t, i) => {
+        t.classList.toggle('active', i === carouselIndex);
+    });
 }
 
 // Keyboard nav for carousel
@@ -135,6 +142,7 @@ function renderSIA416(p) {
 
 // === Detail Map ===
 let detailMapInstance = null;
+window.addEventListener('beforeunload', () => { if (detailMapInstance) detailMapInstance.remove(); });
 
 function initDetailMap(lat, lng) {
     if (detailMapInstance) { detailMapInstance.remove(); detailMapInstance = null; }
@@ -144,7 +152,7 @@ function initDetailMap(lat, lng) {
     if (isNaN(lngNum) || isNaN(latNum)) return;
     detailMapInstance = new maplibregl.Map({
         container: 'detailMap',
-        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        style: MAP_STYLE,
         center: [lngNum, latNum],
         zoom: 14,
         dragPan: false, scrollZoom: false, boxZoom: false,
@@ -169,11 +177,7 @@ function renderPeerComparison(project) {
     }
     if (peers.length < 2) return '';
 
-    const values = peers.map(p => p.chf_per_m2_gf).sort((a, b) => a - b);
-    const pct = (arr, p) => { const i = (p / 100) * (arr.length - 1); const lo = Math.floor(i); return lo === Math.ceil(i) ? arr[lo] : arr[lo] + (arr[Math.ceil(i)] - arr[lo]) * (i - lo); };
-    const stats = { min: values[0], p25: pct(values, 25), median: pct(values, 50), p75: pct(values, 75), max: values[values.length - 1] };
-    const range = stats.max - stats.min || 1;
-    const pos = v => ((v - stats.min) / range) * 100;
+    const stats = computeStats(peers.map(p => p.chf_per_m2_gf));
     const warn = peers.length < 5 ? `<div class="warning-banner"><span class="material-icons-outlined">warning</span> Vergleichsmenge enthält nur ${peers.length} Projekte. Werte nicht belastbar (n &lt; 5).</div>` : '';
 
     return `<div class="detail-card" style="margin-bottom:var(--space-4)">
@@ -184,15 +188,7 @@ function renderPeerComparison(project) {
             </div>
             ${warn}
             <div style="font-size:var(--font-size-xs);color:var(--neutral-500);margin-bottom:var(--space-1)">CHF/m\u00B2 GF</div>
-            <div class="box-plot">
-                <div class="box-plot-whisker" style="left:${pos(stats.min)}%;width:${pos(stats.max) - pos(stats.min)}%"></div>
-                <div class="box-plot-box" style="left:${pos(stats.p25)}%;width:${pos(stats.p75) - pos(stats.p25)}%"></div>
-                <div class="box-plot-median" style="left:${pos(stats.median)}%"></div>
-                <div class="box-plot-marker" style="left:${pos(project.chf_per_m2_gf)}%" title="Dieses Projekt: ${fmtN(project.chf_per_m2_gf)}"></div>
-            </div>
-            <div class="box-plot-labels">
-                <span>${fmtN(stats.min)}</span><span>P25: ${fmtN(stats.p25)}</span><span>Median: ${fmtN(stats.median)}</span><span>P75: ${fmtN(stats.p75)}</span><span>${fmtN(stats.max)}</span>
-            </div>
+            ${renderBoxPlot(stats, project.chf_per_m2_gf)}
             <div style="margin-top:var(--space-3);font-size:var(--font-size-sm)">
                 Dieses Projekt: <strong style="color:var(--accent-600)">${fmtN(project.chf_per_m2_gf)} CHF/m\u00B2 GF</strong>
             </div>
@@ -200,12 +196,69 @@ function renderPeerComparison(project) {
     </div>`;
 }
 
+// === Data Quality Card ===
+function renderDataQuality(p, costs, benchmarks, indexRef, timeline, images) {
+    // Checklist items: [label, hasData]
+    const checks = [
+        ['Kostendaten', p.construction_cost_total != null],
+        ['BKP-Gliederung', costs.length > 0],
+        ['Flächenangaben', p.gf_m2 != null],
+        ['Kennwerte (PDF)', benchmarks.length > 0],
+        ['Baupreisindex', indexRef != null],
+        ['Termine', timeline.length > 0],
+        ['Projektbeschrieb', !!p.project_description],
+        ['Bilder', images.length > 0],
+        ['Koordinaten', p.coord_lat != null && p.coord_lng != null],
+        ['Beteiligte', !!(p.architect || p.general_planner || p.general_contractor)],
+    ];
+    const filled = checks.filter(([, ok]) => ok).length;
+    const total = checks.length;
+    const pct = Math.round((filled / total) * 100);
+
+    // Overall grade: A (>=80%), B (>=60%), C (>=40%), D (<40%)
+    // Bonus: Schlussabrechnung data phase boosts trust
+    const phase = p.phase_at_recording || '';
+    const phaseLabel = phase || 'Keine Angabe';
+    let grade, gradeClass;
+    if (pct >= 80) { grade = 'A'; gradeClass = 'quality-a'; }
+    else if (pct >= 60) { grade = 'B'; gradeClass = 'quality-b'; }
+    else if (pct >= 40) { grade = 'C'; gradeClass = 'quality-c'; }
+    else { grade = 'D'; gradeClass = 'quality-d'; }
+
+    return `<div class="detail-card"><div class="detail-card-header">Datenqualität</div><div class="detail-card-body">
+        <div class="dq-header">
+            <div class="dq-grade ${gradeClass}">${grade}</div>
+            <div class="dq-summary">
+                <div class="dq-bar-track"><div class="dq-bar-fill" style="width:${pct}%"></div></div>
+                <div class="dq-bar-label">${filled} / ${total} Datenbereiche verfügbar</div>
+            </div>
+        </div>
+        <div class="dq-meta">
+            ${detailField('Datenphase', phaseLabel)}
+            ${detailField('Extraktionsgrad', p.quality_grade || null)}
+            ${detailField('Preisstand', p.completion_year || null)}
+        </div>
+        <div class="dq-checklist">
+            ${checks.map(([label, ok]) =>
+                `<div class="dq-check ${ok ? 'ok' : 'missing'}">
+                    <span class="material-icons-outlined">${ok ? 'check_circle' : 'radio_button_unchecked'}</span>
+                    <span>${label}</span>
+                </div>`
+            ).join('')}
+        </div>
+    </div></div>`;
+}
+
 // === Show Detail View ===
 async function showDetail(id) {
     const p = App.db.getProject(id);
     if (!p) return;
 
-    App.detailReturnParams = window.location.search;
+    // Capture return URL: current URL without detail param
+    const returnUrl = new URLSearchParams(window.location.search);
+    returnUrl.delete('detail');
+    App.detailReturnParams = returnUrl.toString() ? '?' + returnUrl.toString() : window.location.pathname;
+
     const url = new URLSearchParams(window.location.search);
     url.set('detail', id);
     window.history.pushState({}, '', '?' + url.toString());
@@ -257,36 +310,19 @@ async function showDetail(id) {
         </div>
     </div>`;
 
-    // --- Projektbeschrieb ---
+    // --- Row 1: Projektbeschrieb + Standort ---
     const desc = p.project_description ? esc(p.project_description) : '';
     const descLong = desc.split(/\s+/).length > 80;
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">Projektbeschrieb</div>
+    const addrParts = [p.street, p.postal_code, displayMuni(p)].filter(Boolean);
+    const addrLine = addrParts.length > 0 ? addrParts.join(' ') : null;
+
+    html += `<div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-header">Projektbeschrieb</div>
         <div class="detail-card-body">
             ${desc
                 ? `<div class="description-text${descLong ? ' truncated' : ''}">${desc}</div>
                    ${descLong ? '<button class="btn btn-sm btn-outline desc-toggle" onclick="this.previousElementSibling.classList.toggle(\'truncated\');this.textContent=this.previousElementSibling.classList.contains(\'truncated\')?\'Mehr anzeigen\':\'Weniger anzeigen\'">Mehr anzeigen</button>' : ''}`
                 : '<span class="detail-field-value empty">Keine Angabe</span>'}
-        </div>
-    </div>`;
-
-    // --- Projektdaten + Standort (2-col grid) ---
-    const addrParts = [p.street, p.postal_code, displayMuni(p)].filter(Boolean);
-    const addrLine = addrParts.length > 0 ? addrParts.join(' ') : null;
-
-    html += `<div class="detail-grid">
-        <div class="detail-card"><div class="detail-card-header">Projektdaten</div><div class="detail-card-body">
-            ${detailField('Art der Arbeiten', p.arbeiten_type ? tagHTML(p.arbeiten_type) : null)}
-            ${detailField('Bauherr (Org.)', p.client_org)}
-            ${detailField('Bauherrschaft', p.client_name)}
-            ${detailField('Nutzer', p.user_org)}
-            ${detailField('Architektur', p.architect)}
-            ${detailField('Generalplaner', p.general_planner)}
-            ${detailField('Generalunternehmer', p.general_contractor)}
-            ${detailField('Energiestandard', p.energy_standard)}
-            ${detailField('Bauweise', p.construction_method)}
-            ${detailField('Beschaffungsmodell', p.procurement_model)}
-            ${detailField('Datenquelle', p.data_source ? srcTagHTML(p.data_source) : null)}
         </div></div>
         <div class="detail-card"><div class="detail-card-header">Standort</div><div class="detail-card-body standort-card">
             <div class="standort-coords">
@@ -305,19 +341,32 @@ async function showDetail(id) {
                     : '<div class="standort-map-empty"><span class="material-icons-outlined">location_off</span><span>Keine Koordinaten vorhanden</span></div>'}
             </div>
             <table class="standort-table">
-                <thead><tr>
-                    <th>Land</th><th>Kanton</th><th>Gemeinde</th><th>PLZ</th><th>Strasse</th><th>Hausnr.</th>
-                </tr></thead>
+                <thead><tr><th>Land</th><th>Kanton</th><th>Gemeinde</th><th>PLZ</th><th>Strasse</th><th>Hausnr.</th></tr></thead>
                 <tbody><tr>
-                    <td>${esc(p.country || '\u2014')}</td>
-                    <td>${esc(p.canton || '\u2014')}</td>
-                    <td>${esc(displayMuni(p) || '\u2014')}</td>
-                    <td>${esc(p.postal_code || '\u2014')}</td>
-                    <td>${esc(p.street || '\u2014')}</td>
-                    <td>${esc(p.house_number || '\u2014')}</td>
+                    <td>${esc(p.country || '\u2014')}</td><td>${esc(p.canton || '\u2014')}</td>
+                    <td>${esc(displayMuni(p) || '\u2014')}</td><td>${esc(p.postal_code || '\u2014')}</td>
+                    <td>${esc(p.street || '\u2014')}</td><td>${esc(p.house_number || '\u2014')}</td>
                 </tr></tbody>
             </table>
         </div></div>
+    </div>`;
+
+    // --- Row 2: Projektdaten + Datenqualität ---
+    html += `<div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-header">Projektdaten</div><div class="detail-card-body">
+            ${detailField('Art der Arbeiten', p.arbeiten_type ? tagHTML(p.arbeiten_type) : null)}
+            ${detailField('Bauherr (Org.)', p.client_org)}
+            ${detailField('Bauherrschaft', p.client_name)}
+            ${detailField('Nutzer', p.user_org)}
+            ${detailField('Architektur', p.architect)}
+            ${detailField('Generalplaner', p.general_planner)}
+            ${detailField('Generalunternehmer', p.general_contractor)}
+            ${detailField('Energiestandard', p.energy_standard)}
+            ${detailField('Bauweise', p.construction_method)}
+            ${detailField('Beschaffungsmodell', p.procurement_model)}
+            ${detailField('Datenquelle', p.data_source ? srcTagHTML(p.data_source) : null)}
+        </div></div>
+        ${renderDataQuality(p, costs, benchmarks, indexRef, timeline, allImages)}
     </div>`;
 
     // --- Mengen und Kennwerte (full width) ---
@@ -419,8 +468,8 @@ async function showDetail(id) {
         });
     });
 
-    const h = el.querySelector('h2');
-    if (h) { h.tabIndex = -1; h.focus(); }
+    // Scroll to top without stealing visible focus
+    el.closest('.detail-scroll')?.scrollTo(0, 0);
 }
 
 function hideDetail() {
@@ -428,7 +477,6 @@ function hideDetail() {
     document.getElementById('searchSection').style.display = '';
     if (detailMapInstance) { detailMapInstance.remove(); detailMapInstance = null; }
     window.history.pushState({}, '', App.detailReturnParams || window.location.pathname);
-    document.getElementById('searchInput').focus();
 }
 
 // === Cost Estimator ===
@@ -436,11 +484,12 @@ function showEstimator() {
     const url = new URLSearchParams(window.location.search);
     url.set('estimator', '1');
     window.history.pushState({}, '', '?' + url.toString());
-    App.detailReturnParams = window.location.search.replace(/[&?]estimator=1/, '');
+    const estReturn = new URLSearchParams(window.location.search);
+    estReturn.delete('estimator');
+    App.detailReturnParams = estReturn.toString() ? '?' + estReturn.toString() : window.location.pathname;
 
     const cats = App.filterOptions.categories || [];
-    const arts = [{ value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
-        { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }];
+    const arts = ARBEITEN_TYPES;
     const cantons = App.filterOptions.cantons || [];
 
     document.getElementById('estimatorContent').innerHTML = `
@@ -501,11 +550,7 @@ function computeEstimate() {
         return;
     }
 
-    const values = peers.map(p => p.chf_per_m2_gf).sort((a, b) => a - b);
-    const pct = (arr, p) => { const i = (p / 100) * (arr.length - 1); const lo = Math.floor(i); return lo === Math.ceil(i) ? arr[lo] : arr[lo] + (arr[Math.ceil(i)] - arr[lo]) * (i - lo); };
-    const stats = { min: values[0], p25: pct(values, 25), median: pct(values, 50), p75: pct(values, 75), max: values[values.length - 1] };
-    const range = stats.max - stats.min || 1;
-    const pos = v => ((v - stats.min) / range) * 100;
+    const stats = computeStats(peers.map(p => p.chf_per_m2_gf));
     const warn = peers.length < 5 ? `<div class="warning-banner"><span class="material-icons-outlined">warning</span> Nur ${peers.length} vergleichbare Projekte. Werte nicht belastbar (n &lt; 5).</div>` : '';
 
     document.getElementById('estResults').innerHTML = `
@@ -528,14 +573,7 @@ function computeEstimate() {
         <div class="est-step">
             <div class="est-step-title">Schritt 3: Kostenbandbreite (GF = ${fmtN(gf)} m\u00B2)</div>
             <div style="font-size:var(--font-size-xs);color:var(--neutral-500);margin-bottom:var(--space-2)">CHF/m\u00B2 GF Verteilung</div>
-            <div class="box-plot">
-                <div class="box-plot-whisker" style="left:${pos(stats.min)}%;width:${pos(stats.max) - pos(stats.min)}%"></div>
-                <div class="box-plot-box" style="left:${pos(stats.p25)}%;width:${pos(stats.p75) - pos(stats.p25)}%"></div>
-                <div class="box-plot-median" style="left:${pos(stats.median)}%"></div>
-            </div>
-            <div class="box-plot-labels">
-                <span>Min ${fmtN(stats.min)}</span><span>P25 ${fmtN(stats.p25)}</span><span>Median ${fmtN(stats.median)}</span><span>P75 ${fmtN(stats.p75)}</span><span>Max ${fmtN(stats.max)}</span>
-            </div>
+            ${renderBoxPlot(stats)}
             <div style="margin-top:var(--space-6)">
                 <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-3)">Geschätzte Gebäudekosten (BKP 2)</div>
                 <div class="est-result-row"><span class="est-result-label">P25 (konservativ)</span><span class="est-result-value">${fmtMio(stats.p25 * gf)}</span></div>

@@ -39,8 +39,8 @@ function renderGallery() {
                 <div class="card-title">${esc(name)}</div>
                 <div class="card-location">${esc(muni)}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || '\u2014'}</div>
                 ${hasData ? `<div class="card-kpis">
-                    <div><span class="card-kpi-label">GF</span><div class="card-kpi-value">${p.gf_m2 ? fmtN(p.gf_m2) + ' m\u00B2' : '\u2014'}</div></div>
-                    <div><span class="card-kpi-label">GV</span><div class="card-kpi-value">${p.gv_m3 ? fmtN(p.gv_m3) + ' m\u00B3' : '\u2014'}</div></div>
+                    <div><span class="card-kpi-label">GF</span><div class="card-kpi-value">${fmtArea(p.gf_m2)}</div></div>
+                    <div><span class="card-kpi-label">GV</span><div class="card-kpi-value">${fmtVol(p.gv_m3)}</div></div>
                     <div><span class="card-kpi-label">Kosten</span><div class="card-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : '\u2014'}</div></div>
                     <div><span class="card-kpi-label">CHF/m\u00B2 GF</span><div class="card-kpi-value ${p.chf_per_m2_gf ? 'highlight' : 'muted'}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : '\u2014'}</div></div>
                 </div>` : `<div class="card-no-data">Keine Kostendaten</div>`}
@@ -65,9 +65,8 @@ function renderDashboard() {
     const all = App.filteredProjects;
     const withCost = all.filter(p => p.chf_per_m2_gf != null);
     const withGF = all.filter(p => p.gf_m2 != null);
-    const values = withCost.map(p => p.chf_per_m2_gf).sort((a, b) => a - b);
-    const pct = (arr, p) => { if (!arr.length) return null; const i = (p/100)*(arr.length-1); const lo = Math.floor(i); return lo === Math.ceil(i) ? arr[lo] : arr[lo]+(arr[Math.ceil(i)]-arr[lo])*(i-lo); };
-    const median = pct(values, 50);
+    const values = withCost.map(p => p.chf_per_m2_gf);
+    const stats = computeStats(values);
     const sources = new Set(all.map(p => p.data_source));
 
     const catMap = {};
@@ -99,21 +98,12 @@ function renderDashboard() {
             <div class="stat-box"><div class="stat-box-value">${all.length}</div><div class="stat-box-label">Projekte</div></div>
             <div class="stat-box"><div class="stat-box-value">${withGF.length}</div><div class="stat-box-label">mit GF</div></div>
             <div class="stat-box"><div class="stat-box-value">${withCost.length}</div><div class="stat-box-label">mit Kosten</div></div>
-            <div class="stat-box"><div class="stat-box-value accent">${median ? fmtN(median) : '\u2014'}</div><div class="stat-box-label">Median CHF/m\u00B2</div></div>
+            <div class="stat-box"><div class="stat-box-value accent">${stats.median ? fmtN(stats.median) : '\u2014'}</div><div class="stat-box-label">Median CHF/m\u00B2</div></div>
             <div class="stat-box"><div class="stat-box-value">${sources.size}</div><div class="stat-box-label">Quellen</div></div>
         </div>
         ${withCost.length > 0 ? `<div class="detail-card" style="margin-bottom:var(--space-4)">
             <div class="detail-card-header">CHF/m\u00B2 GF \u2014 Verteilung</div>
-            <div class="detail-card-body">
-                <div class="box-plot" style="height:40px">
-                    <div class="box-plot-whisker" style="left:0%;width:100%"></div>
-                    <div class="box-plot-box" style="left:${((pct(values,25)-values[0])/(values[values.length-1]-values[0]||1))*100}%;width:${((pct(values,75)-pct(values,25))/(values[values.length-1]-values[0]||1))*100}%"></div>
-                    <div class="box-plot-median" style="left:${((median-values[0])/(values[values.length-1]-values[0]||1))*100}%"></div>
-                </div>
-                <div class="box-plot-labels">
-                    <span>Min ${fmtN(values[0])}</span><span>P25 ${fmtN(pct(values,25))}</span><span>Median ${fmtN(median)}</span><span>P75 ${fmtN(pct(values,75))}</span><span>Max ${fmtN(values[values.length-1])}</span>
-                </div>
-            </div>
+            <div class="detail-card-body">${renderBoxPlot(stats)}</div>
         </div>` : ''}
         <div class="detail-grid">
             <div class="detail-card">
@@ -199,7 +189,7 @@ function renderMap() {
 function initMap() {
     App.map = new maplibregl.Map({
         container: 'map',
-        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        style: MAP_STYLE,
         center: [8.2275, 46.8182],
         zoom: 7.5
     });
