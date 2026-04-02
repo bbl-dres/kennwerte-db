@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.bbl.admin.ch)",
+      "Bash(bash download.sh)",
+      "Bash(pip list:*)",
+      "Bash(npm list:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/build_db.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/index.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} \\(%{size_download} bytes\\)\" http://localhost:8080/data/kennwerte.db)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/js/app.js)",
+      "Bash(kill %1)",
+      "WebFetch(domain:www.ar.admin.ch)",
+      "WebFetch(domain:www.stadt-zuerich.ch)",
+      "WebSearch",
+      "Bash(bash download_armasuisse.sh)",
+      "Bash(bash download_stadt_zuerich.sh)",
+      "Bash(ls docs/bautendokumentationen/armasuisse/*.pdf)",
+      "Bash(ls docs/bautendokumentationen/stadt_zuerich/*.pdf)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/fix_cache.py)",
+      "WebFetch(domain:www.bfs.admin.ch)",
+      "WebFetch(domain:opendata.swiss)",
+      "Bash(ls docs/bautendokumentationen/verwaltung/*.pdf)",
+      "Bash(xargs -I{} basename \"{}\")",
+      "Bash(ls docs/bautendokumentationen/*.pdf)"
+    ]
+  }
+}

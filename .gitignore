@@ -1,0 +1,12 @@
+# PDFs - too large for git (~1.3 GB)
+docs/bautendokumentationen/*.pdf
+
+# Intermediate extraction cache
+data/pdf_texts.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Download script (keep, but PDFs are excluded)
+# docs/bautendokumentationen/download.sh is tracked

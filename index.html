@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kennwerte-db — Bautendokumentationen</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-left">
+            <h1 class="logo">kennwerte-db</h1>
+            <span class="badge">Prototype</span>
+        </div>
+        <nav class="main-nav">
+            <a href="#/projects" class="nav-link" data-view="projects">Projekte</a>
+            <a href="#/statistics" class="nav-link" data-view="statistics">Statistik</a>
+        </nav>
+    </header>
+    <main id="content">
+        <div class="loading-screen">
+            <div class="loading-spinner"></div>
+            <p>Datenbank wird geladen...</p>
+        </div>
+    </main>
+    <script src="js/db.js"></script>
+    <script src="js/components/filters.js"></script>
+    <script src="js/components/table.js"></script>
+    <script src="js/components/stats-card.js"></script>
+    <script src="js/views/project-list.js"></script>
+    <script src="js/views/project-detail.js"></script>
+    <script src="js/views/statistics.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
