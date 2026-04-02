@@ -6,7 +6,7 @@
 
 Data is sourced from publicly available Bautendokumentationen published by Swiss federal, cantonal, and municipal building authorities (BBL, armasuisse, Stadt Zürich, and others). The application is designed as a no-build, static-hosted prototype (GitHub Pages + sql.js) with a path toward a production system.
 
-**Related documents**: [REQUIREMENTS.md](REQUIREMENTS.md) (functional and non-functional requirements) · [SCRAPING.md](SCRAPING.md) (data sources and extraction pipeline)
+**Related documents**: [REQUIREMENTS.md](REQUIREMENTS.md) (functional and non-functional requirements) · [SOURCES.md](SOURCES.md) (data source inventory) · [PIPELINE.md](PIPELINE.md) (extraction pipeline)
 
 ---
 
