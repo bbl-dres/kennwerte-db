@@ -225,7 +225,7 @@ function renderList() {
             <td>${tagHTML(p.arbeiten_type)}</td>
             <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
             <td class="num">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</td>
-            <td class="num" style="font-weight:600;${p.chf_per_m2_gf ? 'color:var(--accent-600)' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</td>
+            <td class="num" style="font-weight:600">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</td>
         </tr>
     `).join('');
     wireListDelegation();

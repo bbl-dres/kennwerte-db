@@ -80,7 +80,7 @@ function srcTagHTML(src) {
     const m = { bbl: ['BBL', 'tag-bbl'], armasuisse: ['armasuisse', 'tag-armasuisse'],
         'stadt-zuerich': ['Stadt ZH', 'tag-stadt-zuerich'] };
     const [label, cls] = m[src] || [esc(src) || '?', ''];
-    return `<span class="tag tag-src ${cls}">${label}</span>`;
+    return `<span class="tag tag-sm ${cls}">${label}</span>`;
 }
 
 function srcClass(src) {
@@ -90,8 +90,8 @@ function srcClass(src) {
 // === Country tag ===
 function countryTagHTML(country) {
     const isCH = !country || country === 'CH' || country === 'Schweiz';
-    if (isCH) return '<span class="tag tag-country tag-ch">CH</span>';
-    return `<span class="tag tag-country tag-int">${esc(country)}</span>`;
+    if (isCH) return '<span class="tag tag-sm tag-ch">CH</span>';
+    return `<span class="tag tag-sm tag-int">${esc(country)}</span>`;
 }
 
 function isSwiss(p) {
@@ -231,6 +231,26 @@ function activateView(view) {
     document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
     document.getElementById(view + 'View')?.classList.add('active');
+}
+
+// === WGS84 to Swiss LV95 approximate conversion ===
+function wgs84ToLV95(lat, lng) {
+    const latSec = lat * 3600;
+    const lngSec = lng * 3600;
+    const latAux = (latSec - 169028.66) / 10000;
+    const lngAux = (lngSec - 26782.5) / 10000;
+    const E = 2600072.37
+        + 211455.93 * lngAux
+        - 10938.51 * lngAux * latAux
+        - 0.36 * lngAux * latAux * latAux
+        - 44.54 * lngAux * lngAux * lngAux;
+    const N = 1200147.07
+        + 308807.95 * latAux
+        + 3745.25 * lngAux * lngAux
+        + 76.63 * latAux * latAux
+        - 194.56 * lngAux * lngAux * latAux
+        + 119.79 * latAux * latAux * latAux;
+    return { E: Math.round(E), N: Math.round(N) };
 }
 
 // === Detail field (shared by detail + estimator) ===

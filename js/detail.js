@@ -205,7 +205,7 @@ function initDetailMap(lat, lng) {
     if (isNaN(lngNum) || isNaN(latNum)) return;
 
     const homeCenter = [lngNum, latNum];
-    const homeZoom = 14;
+    const homeZoom = 17;
 
     detailMapInstance = new maplibregl.Map({
         container: 'detailMap',
@@ -258,7 +258,7 @@ function renderPeerComparison(project) {
             <div style="font-size:var(--font-size-xs);color:var(--neutral-500);margin-bottom:var(--space-1)">CHF/m\u00B2 GF</div>
             ${renderBoxPlot(stats, project.chf_per_m2_gf)}
             <div style="margin-top:var(--space-3);font-size:var(--font-size-sm)">
-                Dieses Projekt: <strong style="color:var(--accent-600)">${fmtN(project.chf_per_m2_gf)} CHF/m\u00B2 GF</strong>
+                Dieses Projekt: <strong style="color:var(--accent-700)">${fmtN(project.chf_per_m2_gf)} CHF/m\u00B2 GF</strong>
             </div>
         </div>
     </div>`;
@@ -340,12 +340,14 @@ function renderEbkph(p, records) {
         const chfM3 = gv && chf ? fmtDec(chf / gv) : '';
         const chfM2 = gf && chf ? fmtDec(chf / gf) : '';
 
+        const bezugStr = bezugVal
+            ? (meta.unit === 'CHF' ? `${fmtN(bezugVal)} CHF ${bezugRef}` : `${fmtN(bezugVal)} ${bezugUnit} ${bezugRef}`)
+            : '';
+
         return `<tr>
             <td>${code}</td>
             <td>${esc(meta.name)}</td>
-            <td class="num">${bezugVal ? (meta.unit === 'CHF' ? fmtN(bezugVal) : fmtN(bezugVal)) : ''}</td>
-            <td class="num bezug-unit">${bezugVal ? bezugUnit : ''}</td>
-            <td class="num bezug-ref">${bezugVal ? bezugRef : ''}</td>
+            <td class="num">${bezugStr}</td>
             <td class="num">${kennwert != null ? fmtDec(kennwert) : ''}</td>
             <td class="num">${chf ? fmtN(chf) : ''}</td>
             <td class="num">${pctBW}</td>
@@ -359,9 +361,9 @@ function renderEbkph(p, records) {
         return `<tr class="ebkph-summary">
             <td>${codes[0]}\u2009\u2013\u2009${codes[codes.length - 1]}</td>
             <td><strong>${label}</strong></td>
-            <td class="num" colspan="3"></td>
             <td class="num"></td>
-            <td class="num"><strong>${sum ? fmtMio(sum).replace('CHF ', '') : ''}</strong></td>
+            <td class="num"></td>
+            <td class="num"><strong>${sum ? fmtN(sum) : ''}</strong></td>
             <td class="num"></td>
             <td class="num"><strong>${gv && sum ? fmtN(Math.round(sum / gv)) + '.\u2013' : ''}</strong></td>
             <td class="num"><strong>${gf && sum ? fmtN(Math.round(sum / gf)) + '.\u2013' : ''}</strong></td>
@@ -371,14 +373,14 @@ function renderEbkph(p, records) {
     return `<div class="detail-card" style="margin-bottom:var(--space-4)">
         <div class="detail-card-header">Kosten nach Hauptgruppen eBKP-H (2012)</div>
         <div class="detail-card-body" style="padding:0;overflow-x:auto">
-            <table class="ebkph-table">
+            <table class="detail-tbl">
                 <thead><tr>
                     <th>Code</th>
-                    <th></th>
-                    <th class="num" colspan="3">Bezugsmenge</th>
+                    <th>Bezeichnung</th>
+                    <th class="num">Bezug</th>
                     <th class="num">Kennwert</th>
                     <th class="num">CHF</th>
-                    <th class="num">%\u2009B\u2013W</th>
+                    <th class="num">% B\u2013W</th>
                     <th class="num">CHF/m\u00B3 GV</th>
                     <th class="num">CHF/m\u00B2 GF</th>
                 </tr></thead>
@@ -386,7 +388,7 @@ function renderEbkph(p, records) {
                     ${EBKPH_ALL_CODES.map(c => row(c)).join('')}
                     <tr class="ebkph-total">
                         <td></td><td>Total</td>
-                        <td class="num" colspan="3"></td><td class="num"></td>
+                        <td class="num"></td><td class="num"></td>
                         <td class="num">${total ? fmtN(total) : ''}</td>
                         <td class="num">${total ? '100\u2009%' : ''}</td>
                         <td class="num"></td><td class="num"></td>
@@ -566,7 +568,7 @@ function showDetail(id) {
                 ${detailField('Google Street View', p.coord_lat && p.coord_lng
                     ? `<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.coord_lat},${p.coord_lng}" target="_blank" class="standort-link">Auf externer Karte anzeigen <span class="material-icons-outlined">open_in_new</span></a>` : null)}
                 ${detailField('map.geo.admin.ch', p.coord_lat && p.coord_lng
-                    ? `<a href="https://map.geo.admin.ch/#/map?lang=de&center=${p.coord_lng},${p.coord_lat}&z=12&crosshair=marker&topic=ech&layers=ch.swisstopo.amtliches-strassenverzeichnis;ch.bfs.gebaeude_wohnungs_register&bgLayer=ch.swisstopo.swissimage" target="_blank" class="standort-link">Auf externer Karte anzeigen <span class="material-icons-outlined">open_in_new</span></a>` : null)}
+                    ? (() => { const lv = wgs84ToLV95(Number(p.coord_lat), Number(p.coord_lng)); return `<a href="https://map.geo.admin.ch/#/map?lang=de&center=${lv.E},${lv.N}&z=12&crosshair=marker&topic=ech&layers=ch.swisstopo.amtliches-strassenverzeichnis;ch.bfs.gebaeude_wohnungs_register&bgLayer=ch.swisstopo.swissimage" target="_blank" class="standort-link">Auf externer Karte anzeigen <span class="material-icons-outlined">open_in_new</span></a>`; })() : null)}
             </div>
             ${addrLine ? `<div class="standort-address"><span class="material-icons-outlined">location_on</span> ${esc(addrLine)}</div>` : ''}
             <div class="standort-map" id="detailMapContainer">
@@ -607,18 +609,28 @@ function showDetail(id) {
 
     html += `<div class="detail-card" id="sec-bkp" style="margin-bottom:var(--space-4);scroll-margin-top:48px">
         <div class="detail-card-header">${abbr('BKP', 'Baukostenplan')}-Kostenstruktur</div>
-        <div class="detail-card-body">
+        <div class="detail-card-body" style="padding:0;overflow-x:auto">
+            <table class="detail-tbl">
+                <thead><tr>
+                    <th>Code</th>
+                    <th>Bezeichnung</th>
+                    <th class="num">CHF</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>
             ${BKP_STRUCTURE.map(s => {
                 const c = bkpByCode[s.code];
                 const amt = c?.amount_chf;
                 const barW = amt ? Math.round((amt / maxBkpCost) * 100) : 0;
-                return `<div class="cost-row ${s.main ? 'main-group' : 'sub-group'}">
-                    <div class="cost-code">${s.code}</div>
-                    <div class="cost-name">${esc(s.name)}</div>
-                    <div class="cost-amount">${amt ? fmtN(amt) : EMPTY}</div>
-                    <div class="cost-bar-wrap">${barW ? `<div class="cost-bar" style="width:${barW}%"></div>` : ''}</div>
-                </div>`;
+                return `<tr class="${s.main ? 'bkp-main' : 'bkp-sub'}">
+                    <td class="bkp-code">${s.code}</td>
+                    <td>${esc(s.name)}</td>
+                    <td class="num">${amt ? fmtN(amt) : EMPTY}</td>
+                    <td class="bkp-bar-cell"><div class="cost-bar-wrap">${barW ? `<div class="cost-bar" style="width:${barW}%"></div>` : ''}</div></td>
+                </tr>`;
             }).join('')}
+                </tbody>
+            </table>
         </div>
     </div>`;
 
@@ -684,15 +696,53 @@ function showDetail(id) {
 
     // Wire section nav smooth scrolling within detail overlay
     const scrollContainer = el.closest('.detail-scroll');
-    el.querySelectorAll('.detail-section-nav a').forEach(a => {
+    const navLinks = el.querySelectorAll('.detail-section-nav a');
+
+    navLinks.forEach(a => {
         a.addEventListener('click', e => {
             e.preventDefault();
             const target = el.querySelector(a.getAttribute('href'));
             if (target && scrollContainer) {
+                // Immediately highlight clicked link
+                navLinks.forEach(l => l.classList.remove('active'));
+                a.classList.add('active');
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
     });
+
+    // Track which section is in view and highlight its nav link
+    if (scrollContainer) {
+        const sections = Array.from(navLinks)
+            .map(a => el.querySelector(a.getAttribute('href')))
+            .filter(Boolean);
+
+        const observer = new IntersectionObserver(entries => {
+            // Find the topmost visible section
+            let topSection = null;
+            let topY = Infinity;
+            for (const entry of entries) {
+                if (entry.isIntersecting && entry.boundingClientRect.top < topY) {
+                    topY = entry.boundingClientRect.top;
+                    topSection = entry.target;
+                }
+            }
+            if (!topSection) {
+                // Fallback: pick last section that scrolled past the top
+                for (let i = sections.length - 1; i >= 0; i--) {
+                    const rect = sections[i].getBoundingClientRect();
+                    if (rect.top <= 80) { topSection = sections[i]; break; }
+                }
+            }
+            if (topSection) {
+                navLinks.forEach(a => {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + topSection.id);
+                });
+            }
+        }, { root: scrollContainer, rootMargin: '-48px 0px -60% 0px', threshold: 0 });
+
+        sections.forEach(s => observer.observe(s));
+    }
 
     // Scroll to top without stealing visible focus
     scrollContainer?.scrollTo(0, 0);

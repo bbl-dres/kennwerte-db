@@ -65,7 +65,8 @@
       "Bash(grep -n \"\\\\\\\\\\\\\\\\u2014\\\\|'—'\\\\|'\\\\u2014'\\\\|Keine Angabe\\\\|''\\\\s*:\" js/detail.js js/views.js js/utils.js)",
       "Bash(grep -n \"\\\\\\\\\\\\\\\\u2014\" js/detail.js js/views.js js/utils.js)",
       "Bash(grep -v \"//\\\\|\\\\.—\\\\|Verteilung\\\\|\\\\\\\\.\\\\\\\\\\\\\\\\u2013\")",
-      "Bash(grep -v \"//\\\\|Verteilung\\\\|\\\\\\\\\\\\\\\\u2013\")"
+      "Bash(grep -v \"//\\\\|Verteilung\\\\|\\\\\\\\\\\\\\\\u2013\")",
+      "WebFetch(domain:docs.geo.admin.ch)"
     ]
   }
 }
