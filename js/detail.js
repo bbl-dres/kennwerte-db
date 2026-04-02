@@ -68,6 +68,14 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'ArrowRight') navigateCarousel(1);
 });
 
+// Wire carousel button listeners (replacing inline onclick)
+document.getElementById('carouselCloseBtn').addEventListener('click', closeCarousel);
+document.getElementById('carouselPrev').addEventListener('click', () => navigateCarousel(-1));
+document.getElementById('carouselNext').addEventListener('click', () => navigateCarousel(1));
+document.getElementById('carouselMain').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeCarousel();
+});
+
 // === Image Gallery Builder ===
 // Store images in a global to avoid data-attribute JSON encoding issues
 let _galleryImages = [];
@@ -195,19 +203,34 @@ function initDetailMap(lat, lng) {
     if (!container) return;
     const lngNum = parseFloat(lng), latNum = parseFloat(lat);
     if (isNaN(lngNum) || isNaN(latNum)) return;
+
+    const homeCenter = [lngNum, latNum];
+    const homeZoom = 14;
+
     detailMapInstance = new maplibregl.Map({
         container: 'detailMap',
         style: MAP_STYLE,
-        center: [lngNum, latNum],
-        zoom: 14,
-        dragPan: false, scrollZoom: false, boxZoom: false,
-        dragRotate: false, doubleClickZoom: false, touchZoomRotate: false,
-        keyboard: false, attributionControl: false
+        center: homeCenter,
+        zoom: homeZoom,
+        attributionControl: false
     });
+
+    // Navigation: zoom + compass
+    detailMapInstance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+
+    // Home button: reset to marker
+    const homeBtn = document.createElement('div');
+    homeBtn.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    homeBtn.innerHTML = '<button type="button" class="maplibregl-ctrl-icon" title="Zurück zum Standort"><span class="material-icons-outlined" style="font-size:18px;line-height:29px">home</span></button>';
+    homeBtn.addEventListener('click', () => {
+        detailMapInstance.flyTo({ center: homeCenter, zoom: homeZoom, duration: 600 });
+    });
+    detailMapInstance.getContainer().querySelector('.maplibregl-ctrl-top-right').appendChild(homeBtn);
+
     detailMapInstance.on('load', () => {
         const markerEl = document.createElement('div');
         markerEl.className = 'map-marker neubau active';
-        new maplibregl.Marker({ element: markerEl }).setLngLat([lngNum, latNum]).addTo(detailMapInstance);
+        new maplibregl.Marker({ element: markerEl }).setLngLat(homeCenter).addTo(detailMapInstance);
     });
 }
 
@@ -401,7 +424,7 @@ function renderDataQuality(p, bkpCosts, ebkphCosts, benchmarks, indexRef, timeli
     // Overall grade: A (>=80%), B (>=60%), C (>=40%), D (<40%)
     // Bonus: Schlussabrechnung data phase boosts trust
     const phase = p.phase_at_recording || '';
-    const phaseLabel = phase || 'Keine Angabe';
+    const phaseLabel = phase || '\u2013';
     let grade, gradeClass;
     if (pct >= 80) { grade = 'A'; gradeClass = 'quality-a'; }
     else if (pct >= 60) { grade = 'B'; gradeClass = 'quality-b'; }
@@ -470,7 +493,7 @@ function showDetail(id) {
             ${p.pdf_filename ? `<a class="btn btn-outline btn-sm" href="data/pdfs/${encodeURIComponent(p.pdf_filename)}" target="_blank">
                 <span class="material-icons-outlined">picture_as_pdf</span> PDF öffnen
             </a>` : ''}
-            <button class="btn btn-outline btn-sm" onclick="hideDetail()">
+            <button class="btn btn-outline btn-sm" id="detailBackBtn">
                 <span class="material-icons-outlined">arrow_back</span> Zurück zur Liste
             </button>
         </div>
@@ -482,26 +505,37 @@ function showDetail(id) {
     if (hasImages) html += buildImageGallery(allImages);
     html += `<div class="detail-hero-info">
             <h2>${esc(name)}</h2>
-            <div class="detail-subtitle">${esc(displayMuni(p))}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || EMPTY}</div>
-            <div class="detail-hero-tags">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)}</div>
+            <div class="detail-subtitle">${esc(displayMuni(p))}${p.canton ? ' ' + esc(p.canton) : ''} \u00B7 ${p.completion_year ? esc(String(p.completion_year)) : EMPTY}</div>
+            <div class="detail-hero-tags">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)} ${countryTagHTML(p.country)} ${qualityTagHTML(p._qualityGrade || computeQualityGrade(p))}</div>
             <div class="detail-hero-kpis">
-                <div class="hero-kpi"><div class="hero-kpi-label">CHF/m\u00B2 GF</div><div class="hero-kpi-value${p.chf_per_m2_gf ? ' accent' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</div></div>
-                <div class="hero-kpi"><div class="hero-kpi-label">Geschossfläche</div><div class="hero-kpi-value">${p.gf_m2 ? fmtArea(p.gf_m2) : EMPTY}</div></div>
+                <div class="hero-kpi"><div class="hero-kpi-label">CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')}</div><div class="hero-kpi-value${p.chf_per_m2_gf ? ' accent' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</div></div>
+                <div class="hero-kpi"><div class="hero-kpi-label">${abbr('GF', 'Geschossfläche')}</div><div class="hero-kpi-value">${p.gf_m2 ? fmtArea(p.gf_m2) : EMPTY}</div></div>
                 <div class="hero-kpi"><div class="hero-kpi-label">Gesamtkosten</div><div class="hero-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</div></div>
             </div>
         </div>
     </div>`;
 
+    // --- Section Navigation ---
+    html += `<nav class="detail-section-nav" aria-label="Sektionen">
+        <a href="#sec-beschrieb">Beschrieb</a>
+        <a href="#sec-projektdaten">Projektdaten</a>
+        <a href="#sec-sia416">${abbr('SIA 416', 'Schweizer Ingenieur- und Architektenverein Norm 416')}</a>
+        <a href="#sec-vergleich">Vergleich</a>
+        <a href="#sec-bkp">${abbr('BKP', 'Baukostenplan')}</a>
+        <a href="#sec-ebkph">${abbr('eBKP-H', 'Elementbasierter Baukostenplan Hochbau')}</a>
+        <a href="#sec-index">Index &amp; Termine</a>
+    </nav>`;
+
     // --- Projektbeschrieb (full width) ---
     const desc = p.project_description ? esc(p.project_description) : '';
     const descLong = desc.split(/\s+/).length > 80;
 
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
+    html += `<div class="detail-card" id="sec-beschrieb" style="margin-bottom:var(--space-4);scroll-margin-top:48px">
         <div class="detail-card-header">Projektbeschrieb</div>
         <div class="detail-card-body">
             ${desc
                 ? `<div class="description-text${descLong ? ' truncated' : ''}">${desc}</div>
-                   ${descLong ? '<button class="btn btn-sm btn-outline desc-toggle" onclick="this.previousElementSibling.classList.toggle(\'truncated\');this.textContent=this.previousElementSibling.classList.contains(\'truncated\')?\'Mehr anzeigen\':\'Weniger anzeigen\'">Mehr anzeigen</button>' : ''}`
+                   ${descLong ? '<button class="btn btn-sm btn-outline desc-toggle">Mehr anzeigen</button>' : ''}`
                 : '<span class="detail-field-value empty">Keine Angabe</span>'}
         </div>
     </div>`;
@@ -510,7 +544,7 @@ function showDetail(id) {
     const addrParts = [p.street, p.postal_code, displayMuni(p)].filter(Boolean);
     const addrLine = addrParts.length > 0 ? addrParts.join(' ') : null;
 
-    html += `<div class="detail-grid">
+    html += `<div class="detail-grid" id="sec-projektdaten" style="scroll-margin-top:48px">
         <div class="detail-card"><div class="detail-card-header">Projektdaten</div><div class="detail-card-body">
             ${detailField('Art der Arbeiten', p.arbeiten_type ? tagHTML(p.arbeiten_type) : null)}
             ${detailField('Bauherr (Org.)', p.client_org)}
@@ -552,25 +586,27 @@ function showDetail(id) {
     </div>`;
 
     // --- SIA 416 + Datenqualität ---
-    html += `<div class="detail-grid">
+    html += `<div class="detail-grid" id="sec-sia416" style="scroll-margin-top:48px">
         ${renderSIA416(p)}
         ${renderDataQuality(p, bkpCosts, ebkphCosts, benchmarks, indexRef, timeline, allImages)}
     </div>`;
 
     // --- Peer comparison ---
+    html += `<div id="sec-vergleich" style="scroll-margin-top:48px">`;
     html += p.chf_per_m2_gf
         ? renderPeerComparison(p)
         : `<div class="detail-card" style="margin-bottom:var(--space-4)">
             <div class="detail-card-header">Vergleich mit ähnlichen Projekten</div>
-            <div class="detail-card-body"><span class="detail-field-value empty">Keine Vergleichsdaten (CHF/m\u00B2 GF fehlt)</span></div>
+            <div class="detail-card-body"><span class="detail-field-value empty">Keine Vergleichsdaten (CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')} fehlt)</span></div>
         </div>`;
+    html += `</div>`;
 
     // --- BKP ---
     const bkpByCode = {};
     bkpCosts.forEach(c => { bkpByCode[c.bkp_code] = c; });
 
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">BKP-Kostenstruktur</div>
+    html += `<div class="detail-card" id="sec-bkp" style="margin-bottom:var(--space-4);scroll-margin-top:48px">
+        <div class="detail-card-header">${abbr('BKP', 'Baukostenplan')}-Kostenstruktur</div>
         <div class="detail-card-body">
             ${BKP_STRUCTURE.map(s => {
                 const c = bkpByCode[s.code];
@@ -587,14 +623,16 @@ function showDetail(id) {
     </div>`;
 
     // --- eBKP-H ---
+    html += `<div id="sec-ebkph" style="scroll-margin-top:48px">`;
     html += renderEbkph(p, ebkphCosts);
+    html += `</div>`;
 
     // --- Baupreisindex + Termine (side by side) ---
     const milestoneLabels = { planungsbeginn: 'Planungsbeginn', wettbewerb: 'Wettbewerb', baubeginn: 'Baubeginn', bauende: 'Bauende', bauzeit_monate: 'Bauzeit (Monate)' };
     const timelineMap = {};
     timeline.forEach(t => { timelineMap[t.milestone] = t.value; });
 
-    html += `<div class="detail-grid">
+    html += `<div class="detail-grid" id="sec-index" style="scroll-margin-top:48px">
         <div class="detail-card">
             <div class="detail-card-header">Baupreisindex</div>
             <div class="detail-card-body">
@@ -631,8 +669,33 @@ function showDetail(id) {
         });
     });
 
+    // Wire back button
+    document.getElementById('detailBackBtn')?.addEventListener('click', hideDetail);
+
+    // Wire description toggle
+    const descToggle = el.querySelector('.desc-toggle');
+    if (descToggle) {
+        descToggle.addEventListener('click', () => {
+            const textEl = descToggle.previousElementSibling;
+            textEl.classList.toggle('truncated');
+            descToggle.textContent = textEl.classList.contains('truncated') ? 'Mehr anzeigen' : 'Weniger anzeigen';
+        });
+    }
+
+    // Wire section nav smooth scrolling within detail overlay
+    const scrollContainer = el.closest('.detail-scroll');
+    el.querySelectorAll('.detail-section-nav a').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            const target = el.querySelector(a.getAttribute('href'));
+            if (target && scrollContainer) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
     // Scroll to top without stealing visible focus
-    el.closest('.detail-scroll')?.scrollTo(0, 0);
+    scrollContainer?.scrollTo(0, 0);
 }
 
 function hideDetail() {
@@ -640,6 +703,8 @@ function hideDetail() {
     document.getElementById('searchSection').style.display = '';
     if (detailMapInstance) { detailMapInstance.remove(); detailMapInstance = null; }
     window.history.pushState({}, '', App.detailReturnParams || window.location.pathname);
+    activateView(App.currentView);
+    applyFilters();
 }
 
 // === Cost Estimator ===
@@ -652,11 +717,11 @@ function showEstimator() {
     App.detailReturnParams = estReturn.toString() ? '?' + estReturn.toString() : window.location.pathname;
 
     const cats = App.filterOptions.categories || [];
-    const arts = ARBEITEN_TYPES;
+    const arts = App.filterOptions.arbeitenTypes || [];
     const cantons = App.filterOptions.cantons || [];
 
     document.getElementById('estimatorContent').innerHTML = `
-        <div class="detail-back" onclick="hideEstimator()">
+        <div class="detail-back" id="estimatorBackBtn">
             <span class="material-icons-outlined">arrow_back</span> Zurück
         </div>
         <div class="detail-header"><h2>Kostenschätzung</h2>
@@ -681,6 +746,7 @@ function showEstimator() {
         <div class="disclaimer">Hinweis: Diese Werte sind Benchmarkauswertungen aus öffentlichen Bautendokumentationen, keine Kostenschätzung. Nicht teuerungsbereinigt.</div>
     `;
     document.getElementById('estCompute').addEventListener('click', computeEstimate);
+    document.getElementById('estimatorBackBtn').addEventListener('click', hideEstimator);
     document.getElementById('estimatorView').classList.add('active');
     document.getElementById('searchSection').style.display = 'none';
     window.scrollTo(0, 0);
@@ -705,8 +771,15 @@ function computeEstimate() {
 
     let peers = App.allProjects.filter(p => p.chf_per_m2_gf != null && p.arbeiten_type === art && p.category === cat);
     if (canton) peers = peers.filter(p => p.canton === canton);
-    if (peers.length < 3 && canton) peers = App.allProjects.filter(p => p.chf_per_m2_gf != null && p.arbeiten_type === art && p.category === cat);
-    if (peers.length < 3) peers = App.allProjects.filter(p => p.chf_per_m2_gf != null && p.arbeiten_type === art);
+    let relaxedNote = '';
+    if (peers.length < 3 && canton) {
+        peers = App.allProjects.filter(p => p.chf_per_m2_gf != null && p.arbeiten_type === art && p.category === cat);
+        relaxedNote = 'Kantonfilter wurde entfernt (zu wenige Projekte). ';
+    }
+    if (peers.length < 3) {
+        peers = App.allProjects.filter(p => p.chf_per_m2_gf != null && p.arbeiten_type === art);
+        relaxedNote += 'Kategoriefilter wurde entfernt (zu wenige Projekte).';
+    }
 
     if (peers.length < 2) {
         document.getElementById('estResults').innerHTML = '<div class="warning-banner"><span class="material-icons-outlined">warning</span> Zu wenige vergleichbare Projekte gefunden.</div>';
@@ -714,7 +787,8 @@ function computeEstimate() {
     }
 
     const stats = computeStats(peers.map(p => p.chf_per_m2_gf));
-    const warn = peers.length < 5 ? `<div class="warning-banner"><span class="material-icons-outlined">warning</span> Nur ${peers.length} vergleichbare Projekte. Werte nicht belastbar (n &lt; 5).</div>` : '';
+    let warn = peers.length < 5 ? `<div class="warning-banner"><span class="material-icons-outlined">warning</span> Nur ${peers.length} vergleichbare Projekte. Werte nicht belastbar (n &lt; 5).</div>` : '';
+    if (relaxedNote) warn += `<div class="warning-banner"><span class="material-icons-outlined">info</span> ${esc(relaxedNote)}</div>`;
 
     document.getElementById('estResults').innerHTML = `
         <div class="est-step">
@@ -723,9 +797,9 @@ function computeEstimate() {
             <div class="table-wrap" style="max-height:300px;overflow-y:auto">
                 <table class="data-table" style="font-size:var(--font-size-xs)">
                     <thead><tr><th>Jahr</th><th>Projekt</th><th>Ort</th><th class="num">GF m\u00B2</th><th class="num">CHF/m\u00B2</th><th>Quelle</th></tr></thead>
-                    <tbody>${peers.map(p => `<tr onclick="showDetail(${parseInt(p.id)})" style="cursor:pointer">
-                        <td>${p.completion_year || EMPTY}</td><td>${esc(p.project_name)}</td>
-                        <td>${esc(p.municipality || '')} ${p.canton || ''}</td>
+                    <tbody>${peers.map(p => `<tr data-id="${parseInt(p.id)}" style="cursor:pointer">
+                        <td>${p.completion_year ? esc(String(p.completion_year)) : EMPTY}</td><td>${esc(p.project_name)}</td>
+                        <td>${esc(p.municipality || '')} ${esc(p.canton || '')}</td>
                         <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
                         <td class="num" style="font-weight:600">${fmtN(p.chf_per_m2_gf)}</td>
                         <td>${srcTagHTML(p.data_source)}</td>
@@ -733,9 +807,9 @@ function computeEstimate() {
                 </table>
             </div>
         </div>
-        <div class="est-step">
-            <div class="est-step-title">Schritt 3: Kostenbandbreite (GF = ${fmtN(gf)} m\u00B2)</div>
-            <div style="font-size:var(--font-size-xs);color:var(--neutral-500);margin-bottom:var(--space-2)">CHF/m\u00B2 GF Verteilung</div>
+        <div class="est-step" id="estStep3">
+            <div class="est-step-title">Schritt 3: Kostenbandbreite (${abbr('GF', 'Geschossfläche')} = ${fmtN(gf)} m\u00B2)</div>
+            <div style="font-size:var(--font-size-xs);color:var(--neutral-500);margin-bottom:var(--space-2)">CHF/m\u00B2 ${abbr('GF', 'Geschossfläche')} Verteilung</div>
             ${renderBoxPlot(stats)}
             <div style="margin-top:var(--space-6)">
                 <div style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-3)">Geschätzte Gebäudekosten (BKP 2)</div>
@@ -745,4 +819,13 @@ function computeEstimate() {
             </div>
         </div>
     `;
+
+    // Wire click delegation for estimator peer table rows
+    const estResultsEl = document.getElementById('estResults');
+    estResultsEl.querySelectorAll('tr[data-id]').forEach(row => {
+        row.addEventListener('click', () => showDetail(parseInt(row.dataset.id)));
+    });
+
+    // Scroll to Schritt 3 so user sees the cost estimate
+    document.getElementById('estStep3')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }

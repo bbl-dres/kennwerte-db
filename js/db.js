@@ -8,13 +8,16 @@ class KennwerteDB {
 
     query(sql, params) {
         const stmt = this.db.prepare(sql);
-        if (params) stmt.bind(params);
-        const results = [];
-        while (stmt.step()) {
-            results.push(stmt.getAsObject());
+        try {
+            if (params) stmt.bind(params);
+            const results = [];
+            while (stmt.step()) {
+                results.push(stmt.getAsObject());
+            }
+            return results;
+        } finally {
+            stmt.free();
         }
-        stmt.free();
-        return results;
     }
 
     queryOne(sql, params) {
@@ -110,7 +113,11 @@ class KennwerteDB {
             ),
             arbeitenTypes: this.query(
                 "SELECT DISTINCT arbeiten_type as value, arbeiten_type as label FROM bauprojekt WHERE arbeiten_type IS NOT NULL ORDER BY arbeiten_type"
+            ).map(r => ({ value: r.value, label: ART_LABELS[r.value] || r.value })),
+            countries: this.query(
+                "SELECT DISTINCT country as value, country as label FROM bauprojekt WHERE country IS NOT NULL ORDER BY country"
             ),
+            qualityGrades: QUALITY_GRADES.map(g => ({ value: g, label: QUALITY_LABELS[g] })),
             yearRange: this.queryOne(
                 "SELECT MIN(completion_year) as min_year, MAX(completion_year) as max_year FROM bauprojekt WHERE completion_year IS NOT NULL"
             ),

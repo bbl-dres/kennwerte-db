@@ -19,7 +19,7 @@ const App = {
 };
 
 // === Formatting ===
-const EMPTY = '<span class="empty-val">Keine Angabe</span>';
+const EMPTY = '<span class="empty-val">\u2013</span>';
 const CH = new Intl.NumberFormat('de-CH');
 const fmtN = v => v != null ? CH.format(Math.round(v)) : EMPTY;
 const fmtMio = v => v != null ? (v >= 1e6 ? `CHF ${(v / 1e6).toFixed(1)} Mio.` : `CHF ${fmtN(v)}`) : EMPTY;
@@ -29,6 +29,11 @@ const fmtVol = v => v != null ? `${fmtN(v)} m\u00B3` : EMPTY;
 // === Escape HTML (reuse single element for performance) ===
 const _escEl = document.createElement('div');
 function esc(s) { _escEl.textContent = s || ''; return _escEl.innerHTML; }
+
+// === Abbreviation tooltip helper ===
+function abbr(short, long) {
+    return `<abbr title="${esc(long)}">${esc(short)}</abbr>`;
+}
 
 // === Statistics (shared by dashboard, peer comparison, estimator) ===
 function percentile(arr, p) {
@@ -58,23 +63,71 @@ function renderBoxPlot(stats, markerValue) {
 }
 
 // === Tag helpers ===
+const ART_LABELS = {
+    NEUBAU: 'Neubau', UMBAU_SANIERUNG: 'Sanierung', UMBAU: 'Umbau',
+    UMBAU_ERWEITERUNG: 'Erweiterung', UMBAU_TEILABBRUCH: 'Teilabbruch', ABBRUCH: 'Abbruch'
+};
+const ART_CLASSES = {
+    NEUBAU: 'tag-neubau', UMBAU_SANIERUNG: 'tag-sanierung', UMBAU: 'tag-umbau',
+    UMBAU_ERWEITERUNG: 'tag-erweiterung', UMBAU_TEILABBRUCH: 'tag-abbruch', ABBRUCH: 'tag-abbruch'
+};
+
 function tagHTML(art) {
-    const m = { NEUBAU: ['Neubau', 'tag-neubau'], UMBAU_SANIERUNG: ['Sanierung', 'tag-sanierung'],
-        UMBAU: ['Umbau', 'tag-umbau'], UMBAU_ERWEITERUNG: ['Erweiterung', 'tag-erweiterung'],
-        UMBAU_TEILABBRUCH: ['Teilabbruch', 'tag-umbau'], ABBRUCH: ['Abbruch', 'tag-umbau'] };
-    const [label, cls] = m[art] || [art || '?', ''];
-    return `<span class="tag ${cls}">${label}</span>`;
+    return `<span class="tag ${ART_CLASSES[art] || ''}">${ART_LABELS[art] || esc(art) || '?'}</span>`;
 }
 
 function srcTagHTML(src) {
     const m = { bbl: ['BBL', 'tag-bbl'], armasuisse: ['armasuisse', 'tag-armasuisse'],
         'stadt-zuerich': ['Stadt ZH', 'tag-stadt-zuerich'] };
-    const [label, cls] = m[src] || [src || '?', ''];
+    const [label, cls] = m[src] || [esc(src) || '?', ''];
     return `<span class="tag tag-src ${cls}">${label}</span>`;
 }
 
 function srcClass(src) {
     return 'src-' + (src || 'bbl');
+}
+
+// === Country tag ===
+function countryTagHTML(country) {
+    const isCH = !country || country === 'CH' || country === 'Schweiz';
+    if (isCH) return '<span class="tag tag-country tag-ch">CH</span>';
+    return `<span class="tag tag-country tag-int">${esc(country)}</span>`;
+}
+
+function isSwiss(p) {
+    return !p.country || p.country === 'CH' || p.country === 'Schweiz';
+}
+
+// === Data Quality Grade (computed from available fields) ===
+const QUALITY_LABELS = { A: 'A — Vollständig', B: 'B — Gut', C: 'C — Teilweise', D: 'D — Minimal' };
+const QUALITY_GRADES = ['A', 'B', 'C', 'D'];
+
+function computeQualityGrade(p) {
+    let score = 0;
+    if (p.construction_cost_total != null) score++;
+    if (p.gf_m2 != null) score++;
+    if (p.chf_per_m2_gf != null) score++;
+    if (p.project_description) score++;
+    if (p.images_found > 0) score++;
+    if (p.coord_lat != null && p.coord_lng != null) score++;
+    if (p.architect || p.general_planner || p.general_contractor) score++;
+    // 7 checks total: A >= 6, B >= 4, C >= 3, D < 3
+    if (score >= 6) return 'A';
+    if (score >= 4) return 'B';
+    if (score >= 3) return 'C';
+    return 'D';
+}
+
+function qualityTagHTML(grade) {
+    return `<span class="tag tag-quality tag-quality-${grade.toLowerCase()}">${grade}</span>`;
+}
+
+// === Search highlighting ===
+function highlightSearch(text, query) {
+    if (!query || !text) return esc(text || '');
+    const escaped = esc(text);
+    const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp(`(${q})`, 'gi'), '<mark class="search-hl">$1</mark>');
 }
 
 // === Display helpers ===
@@ -117,11 +170,6 @@ const BKP_STRUCTURE = [
     { code: '9', name: 'Ausstattung', main: true },
 ];
 
-const ARBEITEN_TYPES = [
-    { value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
-    { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }
-];
-
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 const CATEGORY_ICONS = {
@@ -144,7 +192,6 @@ function renderPagination(totalItems, containerId, onPageChange) {
 
     const page = App.page;
     const pages = [];
-    // Always show first, last, current, and neighbors
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
             pages.push(i);
@@ -153,29 +200,37 @@ function renderPagination(totalItems, containerId, onPageChange) {
         }
     }
 
-    el.innerHTML = `<div class="pagination">
-        <button class="pagination-btn" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">
+    el._paginationCallback = onPageChange;
+
+    el.innerHTML = `<div class="pagination" role="navigation" aria-label="Seitennavigation">
+        <button class="pagination-btn" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}" aria-label="Vorherige Seite">
             <span class="material-icons-outlined">chevron_left</span>
         </button>
         ${pages.map(p => p === '...'
             ? '<span class="pagination-ellipsis">\u2026</span>'
-            : `<button class="pagination-btn${p === page ? ' active' : ''}" data-page="${p}">${p}</button>`
+            : `<button class="pagination-btn${p === page ? ' active' : ''}" data-page="${p}" aria-label="Seite ${p}"${p === page ? ' aria-current="page"' : ''}>${p}</button>`
         ).join('')}
-        <button class="pagination-btn" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">
+        <button class="pagination-btn" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}" aria-label="Nächste Seite">
             <span class="material-icons-outlined">chevron_right</span>
         </button>
         <span class="pagination-info">${(page-1)*PAGE_SIZE+1}\u2013${Math.min(page*PAGE_SIZE, totalItems)} von ${totalItems}</span>
     </div>`;
-    // Delegation: wire once per container, re-use on subsequent renders
     if (!el.dataset.wired) {
         el.dataset.wired = '1';
         el.addEventListener('click', e => {
             const btn = e.target.closest('.pagination-btn[data-page]');
             if (!btn || btn.disabled) return;
             const pg = parseInt(btn.dataset.page);
-            if (pg >= 1) { App.page = pg; onPageChange(); }
+            if (pg >= 1) { App.page = pg; el._paginationCallback(); }
         });
     }
+}
+
+// === View activation (shared by switchView, hideDetail, init) ===
+function activateView(view) {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+    document.getElementById(view + 'View')?.classList.add('active');
 }
 
 // === Detail field (shared by detail + estimator) ===
@@ -184,6 +239,6 @@ function detailField(label, value, highlight) {
     const cls = empty ? ' empty' : (highlight ? ' highlight' : '');
     return `<div class="detail-field">
         <span class="detail-field-label">${label}</span>
-        <span class="detail-field-value${cls}">${empty ? 'Keine Angabe' : value}</span>
+        <span class="detail-field-value${cls}">${empty ? '\u2013' : value}</span>
     </div>`;
 }

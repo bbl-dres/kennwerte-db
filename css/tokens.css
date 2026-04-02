@@ -22,14 +22,14 @@
   --secondary-100: #CAF0F8;
   --secondary-50: #E0F7FA;
 
-  /* Neutral */
+  /* Neutral — contrast-safe: 400 >= 4.5:1 on white, 300 >= 3:1 */
   --neutral-900: #111827;
   --neutral-800: #1F2937;
   --neutral-700: #374151;
   --neutral-600: #4B5563;
   --neutral-500: #6B7280;
-  --neutral-400: #8891A0;
-  --neutral-300: #B0B8C4;
+  --neutral-400: #71767F;
+  --neutral-300: #8891A0;
   --neutral-200: #D1D5DB;
   --neutral-150: #E5E7EB;
   --neutral-100: #F1F5F9;
@@ -42,12 +42,40 @@
   --tag-sanierung: #3B82F6;
   --tag-sanierung-bg: #dbeafe;
   --tag-sanierung-text: #1e40af;
-  --tag-umbau: #F59E0B;
+  --tag-umbau: #D97706;
   --tag-umbau-bg: #fef3c7;
-  --tag-umbau-text: #92400e;
+  --tag-umbau-text: #78350f;
   --tag-erweiterung: #8B5CF6;
   --tag-erweiterung-bg: #f3e8ff;
   --tag-erweiterung-text: #6b21a8;
+  --tag-abbruch: #EF4444;
+  --tag-abbruch-bg: #fee2e2;
+  --tag-abbruch-text: #991b1b;
+
+  /* Data quality grades */
+  --quality-a-bg: #dcfce7;
+  --quality-a-text: #166534;
+  --quality-b-bg: #dbeafe;
+  --quality-b-text: #1e40af;
+  --quality-c-bg: #fef3c7;
+  --quality-c-text: #78350f;
+  --quality-d-bg: #fee2e2;
+  --quality-d-text: #991b1b;
+
+  /* Country tag */
+  --tag-ch-bg: #fee2e2;
+  --tag-ch-text: #991b1b;
+  --tag-int-bg: #e0f2fe;
+  --tag-int-text: #075985;
+
+  /* SIA 416 bar chart levels */
+  --sia-l0: #94a3b8;
+  --sia-l1: #0096C7;
+  --sia-l1-alt: #b0d4e8;
+  --sia-l2: #10B981;
+  --sia-l2-alt: #a7f3d0;
+  --sia-l3: #8B5CF6;
+  --sia-l3-alt: #ddd6fe;
 
   /* Source badges */
   --src-bbl-bg: #e5e7eb;
@@ -58,9 +86,9 @@
   --src-zh-text: #075985;
 
   /* Warning */
-  --warning: #F59E0B;
+  --warning: #D97706;
   --warning-bg: #FEF3C7;
-  --warning-text: #92400e;
+  --warning-text: #78350f;
   --warning-border: #FCD34D;
 
   /* Spacing (4px base) */
@@ -82,7 +110,7 @@
   --radius-xl: 12px;
   --radius-full: 9999px;
 
-  /* Typography */
+  /* Typography — 12px floor for readable text */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SF Mono", "Fira Code", Consolas, monospace;
   --font-size-2xs: 11px;
@@ -115,7 +143,8 @@
   --shadow-xl: 0 8px 32px rgba(0,0,0,0.15);
 
   /* Focus */
-  --state-focus-ring: 0 0 0 3px rgba(200,16,46,0.2);
+  --state-focus-ring: 0 0 0 3px rgba(200,16,46,0.25);
+  --state-focus-outline: 2px solid var(--accent-500);
 
   /* Overlay */
   --overlay-bg: rgba(0,0,0,0.5);
