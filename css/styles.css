@@ -182,6 +182,9 @@ abbr[title]{text-decoration:underline dotted var(--neutral-400);text-underline-o
 /* Tag colors — Country */
 .tag-ch{background:var(--tag-ch-bg);color:var(--tag-ch-text)}
 .tag-int{background:var(--tag-int-bg);color:var(--tag-int-text)}
+/* Tag colors — Category + Year */
+.tag-category{background:rgba(255,255,255,0.85);color:var(--neutral-700)}
+.tag-year{background:rgba(255,255,255,0.85);color:var(--neutral-700);font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 /* Tag colors — Quality */
 .tag-quality{font-weight:var(--font-weight-bold)}
 .tag-quality-a{background:var(--quality-a-bg);color:var(--quality-a-text)}
@@ -206,7 +209,12 @@ mark.search-hl{background:var(--warning-bg);color:inherit;border-radius:2px;padd
 .card-image-placeholder.src-bbl{background:linear-gradient(135deg,#e8eaed,#d1d5db);color:var(--neutral-500)}
 .card-image-placeholder.src-armasuisse{background:linear-gradient(135deg,#d9f99d,#bef264);color:var(--tag-neubau-text)}
 .card-image-placeholder.src-stadt-zuerich{background:linear-gradient(135deg,#bae6fd,#7dd3fc);color:var(--src-zh-text)}
-.card-tags{position:absolute;top:var(--space-2);left:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap}
+.card-tags{position:absolute;left:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap}
+.card-tags-top{top:var(--space-2)}
+.card-tags-bottom{bottom:var(--space-2)}
+.card-tags .tag{cursor:pointer;transition:opacity var(--transition-fast)}
+.card-tags .tag:hover{opacity:0.8}
+.card-tags .tag-sm{padding:2px var(--space-2);font-size:var(--font-size-xs)}
 .card-content{padding:var(--space-4)}
 .card-title{font-size:var(--font-size-base);font-weight:var(--font-weight-semibold);line-height:var(--line-height-tight);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:var(--space-1)}
 .card-location{font-size:var(--font-size-sm);color:var(--neutral-500);margin-bottom:var(--space-3)}

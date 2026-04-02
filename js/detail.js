@@ -614,6 +614,8 @@ function showDetail(id) {
                     <th>Code</th>
                     <th>Bezeichnung</th>
                     <th class="num">CHF</th>
+                    <th class="num">CHF/m\u00B3 GV</th>
+                    <th class="num">CHF/m\u00B2 GF</th>
                     <th></th>
                 </tr></thead>
                 <tbody>
@@ -621,10 +623,14 @@ function showDetail(id) {
                 const c = bkpByCode[s.code];
                 const amt = c?.amount_chf;
                 const barW = amt ? Math.round((amt / maxBkpCost) * 100) : 0;
+                const chfM3 = amt && p.gv_m3 ? fmtN(Math.round(amt / p.gv_m3)) : '';
+                const chfM2 = amt && p.gf_m2 ? fmtN(Math.round(amt / p.gf_m2)) : '';
                 return `<tr class="${s.main ? 'bkp-main' : 'bkp-sub'}">
                     <td>${s.code}</td>
                     <td>${esc(s.name)}</td>
                     <td class="num">${amt ? fmtN(amt) : EMPTY}</td>
+                    <td class="num">${chfM3}</td>
+                    <td class="num">${chfM2}</td>
                     <td class="bkp-bar-cell"><div class="cost-bar-wrap">${barW ? `<div class="cost-bar" style="width:${barW}%"></div>` : ''}</div></td>
                 </tr>`;
             }).join('')}

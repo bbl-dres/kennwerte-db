@@ -30,6 +30,7 @@ class KennwerteDB {
             SELECT b.*,
                    c.display_name_de as category_label,
                    ROUND(b.construction_cost_total / NULLIF(b.gf_m2, 0)) as chf_per_m2_gf,
+                   ROUND(b.construction_cost_total / NULLIF(b.gv_m3, 0)) as chf_per_m3_gv,
                    e.images_found
             FROM bauprojekt b
             LEFT JOIN ref_category_map c ON c.folder_name = b.category
@@ -42,6 +43,7 @@ class KennwerteDB {
         return this.queryOne(
             `SELECT b.*, c.display_name_de as category_label,
                     ROUND(b.construction_cost_total / NULLIF(b.gf_m2, 0)) as chf_per_m2_gf,
+                   ROUND(b.construction_cost_total / NULLIF(b.gv_m3, 0)) as chf_per_m3_gv,
                     e.images_found,
                     e.quality_grade
              FROM bauprojekt b

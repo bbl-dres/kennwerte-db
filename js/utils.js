@@ -73,14 +73,14 @@ const ART_CLASSES = {
 };
 
 function tagHTML(art) {
-    return `<span class="tag ${ART_CLASSES[art] || ''}">${ART_LABELS[art] || esc(art) || '?'}</span>`;
+    return `<span class="tag ${ART_CLASSES[art] || ''}" data-filter-key="arbeiten_type" data-filter-value="${esc(art)}">${ART_LABELS[art] || esc(art) || '?'}</span>`;
 }
 
 function srcTagHTML(src) {
     const m = { bbl: ['BBL', 'tag-bbl'], armasuisse: ['armasuisse', 'tag-armasuisse'],
         'stadt-zuerich': ['Stadt ZH', 'tag-stadt-zuerich'] };
     const [label, cls] = m[src] || [esc(src) || '?', ''];
-    return `<span class="tag tag-sm ${cls}">${label}</span>`;
+    return `<span class="tag tag-sm ${cls}" data-filter-key="data_source" data-filter-value="${esc(src)}">${label}</span>`;
 }
 
 function srcClass(src) {
@@ -90,8 +90,9 @@ function srcClass(src) {
 // === Country tag ===
 function countryTagHTML(country) {
     const isCH = !country || country === 'CH' || country === 'Schweiz';
-    if (isCH) return '<span class="tag tag-sm tag-ch">CH</span>';
-    return `<span class="tag tag-sm tag-int">${esc(country)}</span>`;
+    const val = isCH ? 'CH' : country;
+    if (isCH) return `<span class="tag tag-sm tag-ch" data-filter-key="country" data-filter-value="${esc(val)}">CH</span>`;
+    return `<span class="tag tag-sm tag-int" data-filter-key="country" data-filter-value="${esc(val)}">${esc(country)}</span>`;
 }
 
 function isSwiss(p) {
@@ -118,8 +119,13 @@ function computeQualityGrade(p) {
     return 'D';
 }
 
+function categoryTagHTML(p) {
+    const label = p.category_label || p.category || '';
+    return `<span class="tag tag-sm tag-category" data-filter-key="category" data-filter-value="${esc(p.category)}">${esc(label)}</span>`;
+}
+
 function qualityTagHTML(grade) {
-    return `<span class="tag tag-sm tag-quality tag-quality-${grade.toLowerCase()}">${grade}</span>`;
+    return `<span class="tag tag-sm tag-quality tag-quality-${grade.toLowerCase()}" data-filter-key="quality_grade" data-filter-value="${esc(grade)}">${grade}</span>`;
 }
 
 // === Search highlighting ===

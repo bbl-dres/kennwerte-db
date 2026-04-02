@@ -8,6 +8,18 @@ function wireCardDelegation() {
     _delegationWired.card = true;
     const grid = document.getElementById('cardGrid');
     grid.addEventListener('click', e => {
+        // Tag click → add filter instead of opening detail
+        const tag = e.target.closest('.tag[data-filter-key]');
+        if (tag) {
+            e.stopPropagation();
+            const key = tag.dataset.filterKey;
+            const val = tag.dataset.filterValue;
+            if (!App.filters[key]) App.filters[key] = new Set();
+            App.filters[key].add(val);
+            populateMultiFilters();
+            applyFilters();
+            return;
+        }
         const card = e.target.closest('.card');
         if (card) showDetail(parseInt(card.dataset.id));
     });
@@ -84,13 +96,13 @@ function renderGallery() {
                     : `<div class="card-image-placeholder ${srcClass(p.data_source)}">
                         <span class="material-icons-outlined placeholder-icon">${icon}</span>
                         <span class="placeholder-src">${esc(p.data_source || '')}</span>
-                        ${p.completion_year ? '<span class="placeholder-year">' + p.completion_year + '</span>' : ''}
                     </div>`}
-                <div class="card-tags">${countryTagHTML(p.country)} ${srcTagHTML(p.data_source)} ${tagHTML(p.arbeiten_type)} ${qualityTagHTML(p._qualityGrade)}</div>
+                <div class="card-tags card-tags-top">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)} ${countryTagHTML(p.country)} ${qualityTagHTML(p._qualityGrade)}</div>
+                <div class="card-tags card-tags-bottom">${categoryTagHTML(p)} ${p.completion_year ? `<span class="tag tag-sm tag-year">${p.completion_year}</span>` : ''}</div>
             </div>
             <div class="card-content">
                 <div class="card-title">${hl(p._displayName)}</div>
-                <div class="card-location">${hl(p._displayMuni)}${p.canton ? ' ' + esc(p.canton) : ''} \u00B7 ${p.completion_year ? esc(String(p.completion_year)) : EMPTY}</div>
+                <div class="card-location">${hl(p._displayMuni)}${p.canton ? ' ' + esc(p.canton) : ''}</div>
                 ${hasData ? `<div class="card-kpis">
                     <div><span class="card-kpi-label">${abbr('GF', 'Geschossfläche')}</span><div class="card-kpi-value">${fmtArea(p.gf_m2)}</div></div>
                     <div><span class="card-kpi-label">${abbr('GV', 'Gebäudevolumen')}</span><div class="card-kpi-value">${fmtVol(p.gv_m3)}</div></div>
@@ -207,7 +219,7 @@ function renderList() {
     const pageItems = getPage(App.filteredProjects);
 
     if (App.filteredProjects.length === 0) {
-        document.getElementById('listBody').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:var(--space-16);color:var(--neutral-400)">
+        document.getElementById('listBody').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:var(--space-16);color:var(--neutral-400)">
             <span class="material-icons-outlined" style="font-size:36px;display:block;margin-bottom:var(--space-2)">search_off</span>
             Keine Projekte gefunden
         </td></tr>`;
@@ -226,6 +238,7 @@ function renderList() {
             <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
             <td class="num">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</td>
             <td class="num" style="font-weight:600">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</td>
+            <td class="num">${p.chf_per_m3_gv ? fmtN(p.chf_per_m3_gv) : EMPTY}</td>
         </tr>
     `).join('');
     wireListDelegation();
@@ -451,7 +464,8 @@ function renderMapSidebar() {
     sidebar.innerHTML = capped.map(p =>
         `<div class="map-sidebar-item" data-id="${p.id}">
             <div class="map-sidebar-title">${esc(p._displayName)}</div>
-            <div class="map-sidebar-sub">${esc(p._displayMuni)} ${esc(p.canton || '')} \u00B7 ${p.completion_year ? esc(String(p.completion_year)) : ''}${p._approx ? ' <span title="Ungefährer Standort (Kanton)">\u2248</span>' : ''}</div>
+            <div class="map-sidebar-sub">${esc(p.category_label || p.category)} \u00B7 ${esc(p._displayMuni)} ${esc(p.canton || '')} \u00B7 ${p.completion_year || ''}${p._approx ? ' <span title="Ungefährer Standort (Kanton)">\u2248</span>' : ''}</div>
+            <div class="map-sidebar-sub">${tagHTML(p.arbeiten_type)} ${p.gf_m2 ? `<span style="margin-left:var(--space-1)">${fmtArea(p.gf_m2)}</span>` : ''}</div>
             ${p.chf_per_m2_gf ? `<div class="map-sidebar-kpi">CHF/m\u00B2 ${fmtN(p.chf_per_m2_gf)}</div>` : ''}
         </div>`
     ).join('')

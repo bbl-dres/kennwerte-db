@@ -92,8 +92,10 @@
             <select class="sort-select" id="sortSelect" title="Sortieren" aria-label="Sortierung wählen">
                 <option value="completion_year:desc">Jahr (neueste)</option>
                 <option value="completion_year:asc">Jahr (älteste)</option>
-                <option value="chf_per_m2_gf:asc">CHF/m² (niedrigste)</option>
-                <option value="chf_per_m2_gf:desc">CHF/m² (höchste)</option>
+                <option value="chf_per_m2_gf:asc">CHF/m² GF (niedrigste)</option>
+                <option value="chf_per_m2_gf:desc">CHF/m² GF (höchste)</option>
+                <option value="chf_per_m3_gv:asc">CHF/m³ GV (niedrigste)</option>
+                <option value="chf_per_m3_gv:desc">CHF/m³ GV (höchste)</option>
                 <option value="gf_m2:desc">GF (grösste)</option>
                 <option value="gf_m2:asc">GF (kleinste)</option>
                 <option value="construction_cost_total:desc">Kosten (höchste)</option>
@@ -140,7 +142,8 @@
                     <th scope="col">Art</th>
                     <th class="num sortable" data-col="gf_m2" scope="col"><abbr title="Geschossfläche">GF</abbr> m²</th>
                     <th class="num sortable" data-col="construction_cost_total" scope="col">Kosten</th>
-                    <th class="num sortable" data-col="chf_per_m2_gf" scope="col">CHF/m²</th>
+                    <th class="num sortable" data-col="chf_per_m2_gf" scope="col">CHF/m² GF</th>
+                    <th class="num sortable" data-col="chf_per_m3_gv" scope="col">CHF/m³ GV</th>
                 </tr></thead>
                 <tbody id="listBody"></tbody>
             </table>

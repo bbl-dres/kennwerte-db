@@ -31,6 +31,8 @@ function updateUrl() {
     if (App.filters.quality_grade?.size) p.set('quality', [...App.filters.quality_grade].join(','));
     if (App.filters.yearFrom) p.set('yf', App.filters.yearFrom);
     if (App.filters.yearTo) p.set('yt', App.filters.yearTo);
+    if (App.filters.gfFrom) p.set('gfMin', App.filters.gfFrom);
+    if (App.filters.gfTo) p.set('gfMax', App.filters.gfTo);
     const s = p.toString();
     window.history.replaceState({}, '', s ? `?${s}` : window.location.pathname);
 }
@@ -48,6 +50,8 @@ function restoreFromUrl() {
     if (p.quality) App.filters.quality_grade = new Set(p.quality.split(','));
     if (p.yearFrom) App.filters.yearFrom = p.yearFrom;
     if (p.yearTo) App.filters.yearTo = p.yearTo;
+    if (p.gfMin) App.filters.gfFrom = p.gfMin;
+    if (p.gfMax) App.filters.gfTo = p.gfMax;
     document.getElementById('searchInput').value = App.searchQuery;
     if (p.detail) { showDetail(parseInt(p.detail)); return true; }
     if (p.estimator) { showEstimator(); return true; }
@@ -68,6 +72,8 @@ function applyFilters() {
         if (App.filters.quality_grade?.size && !App.filters.quality_grade.has(p._qualityGrade)) return false;
         if (App.filters.yearFrom && (p.completion_year || 0) < parseInt(App.filters.yearFrom)) return false;
         if (App.filters.yearTo && (p.completion_year || 9999) > parseInt(App.filters.yearTo)) return false;
+        if (App.filters.gfFrom && (p.gf_m2 || 0) < parseInt(App.filters.gfFrom)) return false;
+        if (App.filters.gfTo && (p.gf_m2 || 0) > parseInt(App.filters.gfTo)) return false;
         return true;
     });
 
@@ -90,7 +96,8 @@ function renderFilterPills() {
     const el = document.getElementById('filterPills');
     const pills = [];
     const names = { data_source: 'Quelle', category: 'Kategorie', canton: 'Kanton',
-        arbeiten_type: 'Art', country: 'Land', quality_grade: 'Qualität', yearFrom: 'Ab', yearTo: 'Bis' };
+        arbeiten_type: 'Art', country: 'Land', quality_grade: 'Qualität',
+        yearFrom: 'Ab', yearTo: 'Bis', gfFrom: 'GF ab', gfTo: 'GF bis' };
     const optLookup = {
         data_source: App.filterOptions.dataSources,
         category: App.filterOptions.categories,
@@ -153,6 +160,8 @@ function openFilterModal() {
         <div class="filter-group"><label for="fmQuality">Datenqualität</label><select id="fmQuality">${optionsHTML(opts.qualityGrades || [], App.filters.quality_grade)}</select></div>
         <div class="filter-group"><label for="fmYearFrom">Jahr von</label><input type="number" id="fmYearFrom" value="${App.filters.yearFrom || ''}" placeholder="${opts.yearRange?.min_year || ''}"></div>
         <div class="filter-group"><label for="fmYearTo">Jahr bis</label><input type="number" id="fmYearTo" value="${App.filters.yearTo || ''}" placeholder="${opts.yearRange?.max_year || ''}"></div>
+        <div class="filter-group"><label for="fmGfFrom">GF m² von</label><input type="number" id="fmGfFrom" value="${App.filters.gfFrom || ''}" placeholder="0"></div>
+        <div class="filter-group"><label for="fmGfTo">GF m² bis</label><input type="number" id="fmGfTo" value="${App.filters.gfTo || ''}" placeholder=""></div>
     </div>`;
     const modal = document.getElementById('filterModal');
     modal.classList.add('active');
@@ -175,6 +184,8 @@ function applyFilterModal() {
     setOrDelete('quality_grade', document.getElementById('fmQuality').value);
     App.filters.yearFrom = document.getElementById('fmYearFrom').value || undefined;
     App.filters.yearTo = document.getElementById('fmYearTo').value || undefined;
+    App.filters.gfFrom = document.getElementById('fmGfFrom').value || undefined;
+    App.filters.gfTo = document.getElementById('fmGfTo').value || undefined;
     Object.keys(App.filters).forEach(k => { if (!App.filters[k]) delete App.filters[k]; });
     closeFilterModal();
     populateMultiFilters();
