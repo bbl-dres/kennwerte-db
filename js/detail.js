@@ -618,15 +618,39 @@ function showDetail(id) {
                 ${detailField('FAW/GF', ratioFawGf)}
                 ${detailField('FB/GF', ratioFbGf)}
 
-                ${_gf ? `<div class="sia-section-title" style="margin-top:var(--space-3)">Flächenaufteilung</div>
-                <div style="margin-top:var(--space-4)">
-                    <div class="sia-bar-chart">
-                        <div class="sia-bar-track">${_bar('GF', 100, 'sia-bar-l0')}</div>
-                        ${_pctNgf != null || _pctKf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('NGF', _pctNgf, 'sia-bar-l1')}${_bar('KF', _pctKf, 'sia-bar-l1-alt')}</div>` : ''}
-                        ${_pctNf != null || _pctFf != null || _pctVf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('NF', _pctNf, 'sia-bar-l2')}${_bar('FF', _pctFf, 'sia-bar-l2-alt')}${_bar('VF', _pctVf, 'sia-bar-l2-alt')}</div>` : ''}
-                        ${_pctHnf != null || _pctNnf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('HNF', _pctHnf, 'sia-bar-l3')}${_bar('NNF', _pctNnf, 'sia-bar-l3-alt')}</div>` : ''}
-                    </div>
-                </div>` : ''}
+                ${(() => {
+                    if (!_gf) return '';
+                    const missing = [];
+                    // Row 2: NGF + KF = GF
+                    const r2sum = (_pctNgf || 0) + (_pctKf || 0);
+                    const r2gap = _pctNgf != null || _pctKf != null ? Math.max(0, 100 - r2sum) : 0;
+                    if (_pctNgf == null) missing.push('NGF');
+                    if (_pctKf == null && _pctNgf != null) missing.push('KF');
+                    // Row 3: NF + FF + VF = NGF
+                    const r3sum = (_pctNf || 0) + (_pctFf || 0) + (_pctVf || 0);
+                    const r3gap = _pctNf != null || _pctFf != null || _pctVf != null ? Math.max(0, (_pctNgf || 100) - r3sum) : 0;
+                    if (_pctNgf != null && _pctNf == null) missing.push('NF');
+                    if (_pctNgf != null && _pctFf == null) missing.push('FF');
+                    if (_pctNgf != null && _pctVf == null) missing.push('VF');
+                    // Row 4: HNF + NNF = NF
+                    const r4sum = (_pctHnf || 0) + (_pctNnf || 0);
+                    const r4gap = _pctHnf != null || _pctNnf != null ? Math.max(0, (_pctNf || 100) - r4sum) : 0;
+                    if (_pctNf != null && _pctHnf == null) missing.push('HNF');
+                    if (_pctNf != null && _pctNnf == null) missing.push('NNF');
+
+                    const gapBar = (pct) => pct > 0 ? `<div class="sia-bar sia-bar-gap" style="width:${pct}%"><span>?</span></div>` : '';
+
+                    return `<div class="sia-section-title" style="margin-top:var(--space-3)">Flächenaufteilung</div>
+                    <div style="margin-top:var(--space-4)">
+                        <div class="sia-bar-chart">
+                            <div class="sia-bar-track">${_bar('GF', 100, 'sia-bar-l0')}</div>
+                            ${_pctNgf != null || _pctKf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('NGF', _pctNgf, 'sia-bar-l1')}${_bar('KF', _pctKf, 'sia-bar-l1-alt')}${gapBar(r2gap)}</div>` : ''}
+                            ${_pctNf != null || _pctFf != null || _pctVf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('NF', _pctNf, 'sia-bar-l2')}${_bar('FF', _pctFf, 'sia-bar-l2-alt')}${_bar('VF', _pctVf, 'sia-bar-l2-alt')}${gapBar(r3gap)}</div>` : ''}
+                            ${_pctHnf != null || _pctNnf != null ? `<div class="sia-bar-track sia-bar-split">${_bar('HNF', _pctHnf, 'sia-bar-l3')}${_bar('NNF', _pctNnf, 'sia-bar-l3-alt')}${gapBar(r4gap)}</div>` : ''}
+                        </div>
+                        ${missing.length > 0 ? `<div class="sia-bar-missing"><span class="material-icons-outlined">info</span> Unvollständig: ${missing.join(', ')} fehlt</div>` : ''}
+                    </div>`;
+                })()}
             </div>
         </div>
     </div>`;
