@@ -493,9 +493,7 @@ function showDetail(id) {
             <span class="breadcrumb-item breadcrumb-current">${esc(name)}</span>
         </div>
         <div class="detail-breadcrumb-actions">
-            ${p.pdf_filename ? `<a class="btn btn-outline btn-sm" href="data/pdfs/${encodeURIComponent(p.pdf_filename)}" target="_blank">
-                <span class="material-icons-outlined">picture_as_pdf</span> PDF öffnen
-            </a>` : ''}
+            ${p.pdf_filename ? `<a class="btn btn-outline btn-sm" href="data/pdfs/${encodeURIComponent(p.pdf_filename)}" target="_blank">PDF öffnen</a>` : ''}
             <button class="btn btn-outline btn-sm" id="detailBackBtn">
                 <span class="material-icons-outlined">arrow_back</span> Zurück zur Liste
             </button>
