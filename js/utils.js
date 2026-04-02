@@ -119,7 +119,7 @@ function computeQualityGrade(p) {
 }
 
 function qualityTagHTML(grade) {
-    return `<span class="tag tag-quality tag-quality-${grade.toLowerCase()}">${grade}</span>`;
+    return `<span class="tag tag-sm tag-quality tag-quality-${grade.toLowerCase()}">${grade}</span>`;
 }
 
 // === Search highlighting ===

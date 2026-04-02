@@ -132,16 +132,10 @@ function renderSIA416(p) {
     return `<div class="detail-card">
         <div class="detail-card-header">Volumen und Flächen nach SIA 416</div>
         <div class="detail-card-body">
-            <div class="sia-layout">
+            <div class="sia-layout sia-truncated">
                 <div class="sia-table">
                     <div class="sia-section-title">Gebäudevolumen</div>
                     ${row('GV', 'Gebäudevolumen', gv, 'm\u00B3', gv ? '100' : null)}
-
-                    <div class="sia-section-title" style="margin-top:var(--space-3)">Grundstücksflächen</div>
-                    ${row('GSF', 'Grundstücksfläche', gsf, 'm\u00B2', gsf ? '100' : null)}
-                    ${row('GGF', 'Gebäudegrundfläche', ggf, 'm\u00B2', pctOf(ggf, gsf))}
-                    ${row('UF', 'Umgebungsfläche', uf, 'm\u00B2', pctOf(uf, gsf))}
-                    ${row('BUF', 'Bearbeitete Umgebungsfläche', buf, 'm\u00B2', pctOf(buf, gsf))}
 
                     <div class="sia-section-title" style="margin-top:var(--space-3)">Gebäudeflächen</div>
                     ${row('GF', 'Geschossfläche', gf, 'm\u00B2', gf ? '100' : null)}
@@ -153,6 +147,12 @@ function renderSIA416(p) {
                     ${row('HNF', 'Hauptnutzfläche', hnf, 'm\u00B2', pctOf(hnf, gf))}
                     ${row('NNF', 'Nebennutzfläche', nnf, 'm\u00B2', pctOf(nnf, gf))}
                     ${row('AGF', 'Aussengeschossfläche', agf, 'm\u00B2', pctOf(agf, gf))}
+
+                    <div class="sia-section-title" style="margin-top:var(--space-3)">Grundstücksflächen</div>
+                    ${row('GSF', 'Grundstücksfläche', gsf, 'm\u00B2', gsf ? '100' : null)}
+                    ${row('GGF', 'Gebäudegrundfläche', ggf, 'm\u00B2', pctOf(ggf, gsf))}
+                    ${row('UF', 'Umgebungsfläche', uf, 'm\u00B2', pctOf(uf, gsf))}
+                    ${row('BUF', 'Bearbeitete Umgebungsfläche', buf, 'm\u00B2', pctOf(buf, gsf))}
                 </div>
 
                 <div class="sia-chart">
@@ -189,6 +189,7 @@ function renderSIA416(p) {
                     </div>` : ''}
                 </div>
             </div>
+            <button class="btn btn-sm btn-outline sia-toggle desc-toggle">Mehr anzeigen</button>
         </div>
     </div>`;
 }
@@ -372,7 +373,7 @@ function renderEbkph(p, records) {
 
     return `<div class="detail-card" style="margin-bottom:var(--space-4)">
         <div class="detail-card-header">Kosten nach Hauptgruppen eBKP-H (2012)</div>
-        <div class="detail-card-body" style="padding:0;overflow-x:auto">
+        <div class="detail-card-body detail-card-body--table">
             <table class="detail-tbl">
                 <thead><tr>
                     <th>Code</th>
@@ -608,8 +609,8 @@ function showDetail(id) {
     bkpCosts.forEach(c => { bkpByCode[c.bkp_code] = c; });
 
     html += `<div class="detail-card" id="sec-bkp" style="margin-bottom:var(--space-4);scroll-margin-top:48px">
-        <div class="detail-card-header">${abbr('BKP', 'Baukostenplan')}-Kostenstruktur</div>
-        <div class="detail-card-body" style="padding:0;overflow-x:auto">
+        <div class="detail-card-header"><span>${abbr('BKP', 'Baukostenplan')}-Kostenstruktur</span></div>
+        <div class="detail-card-body detail-card-body--table">
             <table class="detail-tbl">
                 <thead><tr>
                     <th>Code</th>
@@ -623,7 +624,7 @@ function showDetail(id) {
                 const amt = c?.amount_chf;
                 const barW = amt ? Math.round((amt / maxBkpCost) * 100) : 0;
                 return `<tr class="${s.main ? 'bkp-main' : 'bkp-sub'}">
-                    <td class="bkp-code">${s.code}</td>
+                    <td>${s.code}</td>
                     <td>${esc(s.name)}</td>
                     <td class="num">${amt ? fmtN(amt) : EMPTY}</td>
                     <td class="bkp-bar-cell"><div class="cost-bar-wrap">${barW ? `<div class="cost-bar" style="width:${barW}%"></div>` : ''}</div></td>
@@ -694,54 +695,62 @@ function showDetail(id) {
         });
     }
 
+    // Wire SIA 416 expand/collapse
+    const siaToggle = el.querySelector('.sia-toggle');
+    if (siaToggle) {
+        siaToggle.addEventListener('click', () => {
+            const layout = el.querySelector('.sia-layout');
+            layout.classList.toggle('sia-truncated');
+            siaToggle.textContent = layout.classList.contains('sia-truncated') ? 'Mehr anzeigen' : 'Weniger anzeigen';
+        });
+    }
+
     // Wire section nav smooth scrolling within detail overlay
     const scrollContainer = el.closest('.detail-scroll');
     const navLinks = el.querySelectorAll('.detail-section-nav a');
+    const sections = Array.from(navLinks)
+        .map(a => el.querySelector(a.getAttribute('href')))
+        .filter(Boolean);
 
     navLinks.forEach(a => {
         a.addEventListener('click', e => {
             e.preventDefault();
             const target = el.querySelector(a.getAttribute('href'));
             if (target && scrollContainer) {
-                // Immediately highlight clicked link
-                navLinks.forEach(l => l.classList.remove('active'));
-                a.classList.add('active');
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
     });
 
-    // Track which section is in view and highlight its nav link
-    if (scrollContainer) {
-        const sections = Array.from(navLinks)
-            .map(a => el.querySelector(a.getAttribute('href')))
-            .filter(Boolean);
-
-        const observer = new IntersectionObserver(entries => {
-            // Find the topmost visible section
-            let topSection = null;
-            let topY = Infinity;
-            for (const entry of entries) {
-                if (entry.isIntersecting && entry.boundingClientRect.top < topY) {
-                    topY = entry.boundingClientRect.top;
-                    topSection = entry.target;
+    // Track which section is in view via scroll position
+    if (scrollContainer && sections.length) {
+        let ticking = false;
+        const updateActiveNav = () => {
+            const scrollTop = scrollContainer.scrollTop;
+            // Offset = sticky nav height + some breathing room
+            const offset = 64;
+            let current = sections[0];
+            for (const sec of sections) {
+                if (sec.offsetTop - offset <= scrollTop) {
+                    current = sec;
+                } else {
+                    break;
                 }
             }
-            if (!topSection) {
-                // Fallback: pick last section that scrolled past the top
-                for (let i = sections.length - 1; i >= 0; i--) {
-                    const rect = sections[i].getBoundingClientRect();
-                    if (rect.top <= 80) { topSection = sections[i]; break; }
-                }
-            }
-            if (topSection) {
-                navLinks.forEach(a => {
-                    a.classList.toggle('active', a.getAttribute('href') === '#' + topSection.id);
-                });
-            }
-        }, { root: scrollContainer, rootMargin: '-48px 0px -60% 0px', threshold: 0 });
+            navLinks.forEach(a => {
+                a.classList.toggle('active', a.getAttribute('href') === '#' + current.id);
+            });
+        };
 
-        sections.forEach(s => observer.observe(s));
+        scrollContainer.addEventListener('scroll', () => {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(() => { updateActiveNav(); ticking = false; });
+            }
+        }, { passive: true });
+
+        // Set initial state after layout
+        requestAnimationFrame(updateActiveNav);
     }
 
     // Scroll to top without stealing visible focus
