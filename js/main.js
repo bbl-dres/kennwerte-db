@@ -243,12 +243,7 @@ function fillMultiFilter(containerId, filterKey, items) {
 
         btn.addEventListener('click', e => {
             e.stopPropagation();
-            document.querySelectorAll('.multi-filter.open').forEach(mf => {
-                if (mf !== container) {
-                    mf.classList.remove('open');
-                    mf.querySelector('.multi-filter-btn')?.setAttribute('aria-expanded', 'false');
-                }
-            });
+            closeAllMultiFilters(container);
             const isOpen = container.classList.toggle('open');
             btn.setAttribute('aria-expanded', String(isOpen));
         });
@@ -300,22 +295,21 @@ function fillMultiFilter(containerId, filterKey, items) {
     }
 }
 
-// Close dropdowns on outside click
-document.addEventListener('click', () => {
+function closeAllMultiFilters(except) {
     document.querySelectorAll('.multi-filter.open').forEach(mf => {
-        mf.classList.remove('open');
-        mf.querySelector('.multi-filter-btn')?.setAttribute('aria-expanded', 'false');
+        if (mf !== except) {
+            mf.classList.remove('open');
+            mf.querySelector('.multi-filter-btn')?.setAttribute('aria-expanded', 'false');
+        }
     });
-});
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => closeAllMultiFilters());
 
 // Close dropdowns on Escape
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.multi-filter.open').forEach(mf => {
-            mf.classList.remove('open');
-            mf.querySelector('.multi-filter-btn')?.setAttribute('aria-expanded', 'false');
-        });
-    }
+    if (e.key === 'Escape') closeAllMultiFilters();
 });
 
 function optionsHTML(opts, selected) {

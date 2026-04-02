@@ -66,7 +66,9 @@
       "Bash(grep -n \"\\\\\\\\\\\\\\\\u2014\" js/detail.js js/views.js js/utils.js)",
       "Bash(grep -v \"//\\\\|\\\\.—\\\\|Verteilung\\\\|\\\\\\\\.\\\\\\\\\\\\\\\\u2013\")",
       "Bash(grep -v \"//\\\\|Verteilung\\\\|\\\\\\\\\\\\\\\\u2013\")",
-      "WebFetch(domain:docs.geo.admin.ch)"
+      "WebFetch(domain:docs.geo.admin.ch)",
+      "Bash(node -e \" const initSqlJs = require\\('c:/Users/DavidRasner/Documents/GitHub/kennwerte-db/node_modules/sql.js/dist/sql-wasm.js'\\); // Can't run sql.js easily in Node, let's just check the schema from the extract script \")",
+      "Bash(where sqlite3:*)"
     ]
   }
 }

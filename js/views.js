@@ -64,6 +64,14 @@ function wireSidebarDelegation() {
     });
 }
 
+function highlightSidebarItem(id) {
+    document.querySelectorAll('.map-sidebar-item').forEach(el => {
+        const isActive = parseInt(el.dataset.id) === id;
+        el.classList.toggle('active', isActive);
+        if (isActive) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+}
+
 // === Gallery View ===
 function renderGallery() {
     const grid = document.getElementById('cardGrid');
@@ -75,9 +83,7 @@ function renderGallery() {
         return;
     }
     empty.style.display = 'none';
-    const q = App.searchQuery.toLowerCase();
-    const searchRe = q ? new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
-    const hl = (text) => searchRe ? esc(text).replace(searchRe, '<mark class="search-hl">$1</mark>') : esc(text);
+    const hl = text => highlightSearch(text, App.searchQuery);
     const pageItems = getPage(App.filteredProjects);
     grid.innerHTML = pageItems.map(p => {
         const icon = CATEGORY_ICONS[p.category] || 'apartment';
@@ -213,13 +219,11 @@ function renderDashboard() {
 
 // === List View ===
 function renderList() {
-    const q = App.searchQuery.toLowerCase();
-    const searchRe = q ? new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
-    const hl = (text) => searchRe ? esc(text).replace(searchRe, '<mark class="search-hl">$1</mark>') : esc(text);
+    const hl = text => highlightSearch(text, App.searchQuery);
     const pageItems = getPage(App.filteredProjects);
 
     if (App.filteredProjects.length === 0) {
-        document.getElementById('listBody').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:var(--space-16);color:var(--neutral-400)">
+        document.getElementById('listBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:var(--space-16);color:var(--neutral-400)">
             <span class="material-icons-outlined" style="font-size:36px;display:block;margin-bottom:var(--space-2)">search_off</span>
             Keine Projekte gefunden
         </td></tr>`;
@@ -231,14 +235,11 @@ function renderList() {
     tbody.innerHTML = pageItems.map(p => `
         <tr data-id="${p.id}" tabindex="0" role="link">
             <td class="num">${p.completion_year || EMPTY}</td>
-            <td>${hl(p._displayMuni)}${p.canton ? '<br><small style="color:var(--neutral-400)">' + esc(p.canton) + '</small>' : ''}</td>
-            <td><strong>${hl(p._displayName)}</strong></td>
-            <td>${esc(p.category_label || p.category)}<br><small>${srcTagHTML(p.data_source)} ${countryTagHTML(p.country)}</small></td>
-            <td>${tagHTML(p.arbeiten_type)}</td>
+            <td><strong>${hl(p._displayName)}</strong><br><span class="list-sub">${hl(p._displayMuni)}${p.canton ? ' ' + esc(p.canton) : ''}</span></td>
+            <td>${esc(p.category_label || p.category)}<br><span class="list-tags">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)} ${countryTagHTML(p.country)} ${qualityTagHTML(p._qualityGrade)}</span></td>
             <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
             <td class="num">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</td>
             <td class="num" style="font-weight:600">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</td>
-            <td class="num">${p.chf_per_m3_gv ? fmtN(p.chf_per_m3_gv) : EMPTY}</td>
         </tr>
     `).join('');
     wireListDelegation();
@@ -309,8 +310,24 @@ function initMap() {
         zoom: 7.5
     });
     App.map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    // Refresh sidebar when viewport changes (debounced by MapLibre internally)
+
+    // Home button: zoom to fit all projects
+    const homeBtn = document.createElement('div');
+    homeBtn.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    homeBtn.innerHTML = '<button type="button" class="maplibregl-ctrl-icon" title="Alle Projekte anzeigen"><span class="material-icons-outlined" style="font-size:18px;line-height:29px">home</span></button>';
+    homeBtn.addEventListener('click', () => fitMapToAllProjects());
+    App.map.getContainer().querySelector('.maplibregl-ctrl-top-right').appendChild(homeBtn);
+
+    // Refresh sidebar when viewport changes
     App.map.on('moveend', () => { if (_mapLoaded) renderMapSidebar(); });
+}
+
+function fitMapToAllProjects() {
+    if (!_mapProjects.length || !App.map) return;
+    const bounds = new maplibregl.LngLatBounds();
+    _mapProjects.forEach(p => bounds.extend([p._lng, p._lat]));
+    App.selectedMapProject = null;
+    App.map.fitBounds(bounds, { padding: 50, duration: 600 });
 }
 
 function addClusterLayers() {
@@ -377,12 +394,7 @@ function addClusterLayers() {
         const f = e.features[0];
         const id = f.properties.id;
         const coords = f.geometry.coordinates.slice();
-        // Highlight sidebar
-        document.querySelectorAll('.map-sidebar-item').forEach(el => {
-            const isActive = parseInt(el.dataset.id) === id;
-            el.classList.toggle('active', isActive);
-            if (isActive) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
+        highlightSidebarItem(id);
         // Show popup directly at click location
         showMapPopup(id, coords);
     });
@@ -465,13 +477,16 @@ function renderMapSidebar() {
         `<div class="map-sidebar-item" data-id="${p.id}">
             <div class="map-sidebar-title">${esc(p._displayName)}</div>
             <div class="map-sidebar-sub">${esc(p.category_label || p.category)} \u00B7 ${esc(p._displayMuni)} ${esc(p.canton || '')} \u00B7 ${p.completion_year || ''}${p._approx ? ' <span title="Ungefährer Standort (Kanton)">\u2248</span>' : ''}</div>
-            <div class="map-sidebar-sub">${tagHTML(p.arbeiten_type)} ${p.gf_m2 ? `<span style="margin-left:var(--space-1)">${fmtArea(p.gf_m2)}</span>` : ''}</div>
-            ${p.chf_per_m2_gf ? `<div class="map-sidebar-kpi">CHF/m\u00B2 ${fmtN(p.chf_per_m2_gf)}</div>` : ''}
+            <div class="map-sidebar-tags">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)} ${countryTagHTML(p.country)} ${qualityTagHTML(p._qualityGrade)}</div>
+            ${p.gf_m2 || p.chf_per_m2_gf ? `<div class="map-sidebar-kpi">${p.gf_m2 ? fmtArea(p.gf_m2) : ''}${p.gf_m2 && p.chf_per_m2_gf ? ' \u00B7 ' : ''}${p.chf_per_m2_gf ? 'CHF/m\u00B2 ' + fmtN(p.chf_per_m2_gf) : ''}</div>` : ''}
         </div>`
     ).join('')
     + (overflow > 0 ? `<div class="map-sidebar-empty">+ ${overflow} weitere \u2014 reinzoomen für mehr</div>` : '');
 
     wireSidebarDelegation();
+
+    // Re-apply selection after re-render
+    if (App.selectedMapProject) highlightSidebarItem(App.selectedMapProject);
 }
 
 // === Map Info Popup ===
@@ -540,18 +555,12 @@ function showMapPopup(id, lngLat) {
 }
 
 function selectMapProject(id, lngLat) {
+    App.selectedMapProject = id;
+
     if (lngLat && App.map) {
-        App.map.flyTo({ center: lngLat, zoom: Math.max(App.map.getZoom(), 12), duration: 800 });
-        // Show popup after fly animation completes
+        App.map.flyTo({ center: lngLat, zoom: 17, duration: 800 });
         App.map.once('moveend', () => showMapPopup(id, lngLat));
     }
 
-    // Highlight sidebar item
-    document.querySelectorAll('.map-sidebar-item').forEach(el => {
-        const isActive = parseInt(el.dataset.id) === id;
-        el.classList.toggle('active', isActive);
-        if (isActive) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    });
+    highlightSidebarItem(id);
 }

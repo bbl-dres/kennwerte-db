@@ -16,6 +16,7 @@ const App = {
     filterOptions: {},
     detailReturnParams: '',
     page: 1,
+    selectedMapProject: null,
 };
 
 // === Formatting ===
@@ -55,7 +56,7 @@ function renderBoxPlot(stats, markerValue) {
         <div class="box-plot-whisker" style="left:${pos(stats.min)}%;width:${pos(stats.max) - pos(stats.min)}%"></div>
         <div class="box-plot-box" style="left:${pos(stats.p25)}%;width:${pos(stats.p75) - pos(stats.p25)}%"></div>
         <div class="box-plot-median" style="left:${pos(stats.median)}%"></div>
-        ${markerValue != null ? `<div class="box-plot-marker" style="left:${pos(markerValue)}%" title="${fmtN(markerValue)}"></div>` : ''}
+        ${markerValue != null ? `<div class="box-plot-marker" style="left:${pos(markerValue)}%"><span class="box-plot-marker-value">${fmtN(markerValue)}</span><span class="box-plot-triangle"></span></div>` : ''}
     </div>
     <div class="box-plot-labels">
         <span>${fmtN(stats.min)}</span><span>P25: ${fmtN(stats.p25)}</span><span>Median: ${fmtN(stats.median)}</span><span>P75: ${fmtN(stats.p75)}</span><span>${fmtN(stats.max)}</span>
@@ -125,6 +126,7 @@ function categoryTagHTML(p) {
 }
 
 function qualityTagHTML(grade) {
+    if (!grade) return '';
     return `<span class="tag tag-sm tag-quality tag-quality-${grade.toLowerCase()}" data-filter-key="quality_grade" data-filter-value="${esc(grade)}">${grade}</span>`;
 }
 
