@@ -109,6 +109,16 @@ BKP_NAMES = {
     "27": "Ausbau 1", "28": "Ausbau 2", "29": "Honorare",
 }
 
+EBKPH_NAMES = {
+    "A": "Grundstück", "B": "Vorbereitung",
+    "C": "Konstruktion Gebäude", "D": "Technik Gebäude",
+    "E": "Äussere Wandbekleidung Gebäude", "F": "Bedachung Gebäude",
+    "G": "Ausbau Gebäude", "H": "Nutzungsspez. Anlage Gebäude",
+    "I": "Umgebung Gebäude", "J": "Ausstattung Gebäude",
+    "V": "Planungskosten", "W": "Nebenkosten zu Erstellung",
+    "Y": "Reserve, Teuerung", "Z": "Mehrwertsteuer",
+}
+
 GEOAPIFY_KEY = "10dac95a02d944f1be9e31286bad341d"
 
 # ---------------------------------------------------------------------------
@@ -512,6 +522,18 @@ def extract_costs(text):
         val = parse_swiss_number(ak.group(1))
         if val and 10000 <= val <= 500_000_000:
             costs["AK"] = {"name": "Anlagekosten", "amount": val}
+
+    # eBKP-H letter codes (A-Z): "C  Konstruktion Gebäude  221'530"
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+        m = re.match(r"^([A-Z])\s{2,}([A-Za-zÄÖÜäöüéèêàáâïîôûùë\s\-/.&()]+?)\s{2,}([\d\s']{3,})$", line)
+        if m:
+            code, name, amount = m.group(1), m.group(2).strip(), parse_swiss_number(m.group(3))
+            if code in EBKPH_NAMES and amount and 100 <= amount <= 500_000_000:
+                costs[code] = {"name": name, "amount": amount}
+
     return costs
 
 

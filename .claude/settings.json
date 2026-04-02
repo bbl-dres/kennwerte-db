@@ -61,7 +61,11 @@
       "Bash(node -c js/utils.js)",
       "Bash(node -c js/views.js)",
       "Bash(node -c js/detail.js)",
-      "Read(//c/Users/DavidRasner/Documents/GitHub/property-inventory/**)"
+      "Read(//c/Users/DavidRasner/Documents/GitHub/property-inventory/**)",
+      "Bash(grep -n \"\\\\\\\\\\\\\\\\u2014\\\\|'—'\\\\|'\\\\u2014'\\\\|Keine Angabe\\\\|''\\\\s*:\" js/detail.js js/views.js js/utils.js)",
+      "Bash(grep -n \"\\\\\\\\\\\\\\\\u2014\" js/detail.js js/views.js js/utils.js)",
+      "Bash(grep -v \"//\\\\|\\\\.—\\\\|Verteilung\\\\|\\\\\\\\.\\\\\\\\\\\\\\\\u2013\")",
+      "Bash(grep -v \"//\\\\|Verteilung\\\\|\\\\\\\\\\\\\\\\u2013\")"
     ]
   }
 }

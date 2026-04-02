@@ -1,5 +1,55 @@
 /* kennwerte-db — View renderers: Gallery, List, Map, Dashboard */
 
+// === Event delegation (wired once, never re-attached) ===
+let _delegationWired = { card: false, list: false, sidebar: false };
+
+function wireCardDelegation() {
+    if (_delegationWired.card) return;
+    _delegationWired.card = true;
+    const grid = document.getElementById('cardGrid');
+    grid.addEventListener('click', e => {
+        const card = e.target.closest('.card');
+        if (card) showDetail(parseInt(card.dataset.id));
+    });
+    grid.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const card = e.target.closest('.card');
+            if (card) { e.preventDefault(); showDetail(parseInt(card.dataset.id)); }
+        }
+    });
+}
+
+function wireListDelegation() {
+    if (_delegationWired.list) return;
+    _delegationWired.list = true;
+    document.getElementById('listBody').addEventListener('click', e => {
+        const row = e.target.closest('tr');
+        if (row?.dataset.id) showDetail(parseInt(row.dataset.id));
+    });
+}
+
+function wireSidebarDelegation() {
+    if (_delegationWired.sidebar) return;
+    _delegationWired.sidebar = true;
+    const sidebar = document.getElementById('mapSidebar');
+    sidebar.addEventListener('click', e => {
+        const item = e.target.closest('.map-sidebar-item');
+        if (!item) return;
+        const id = parseInt(item.dataset.id);
+        const p = App.filteredProjects.find(pr => pr.id === id);
+        if (p) {
+            let lng, lat;
+            if (p.coord_lat && p.coord_lng) { lat = p.coord_lat; lng = p.coord_lng; }
+            else if (p.canton && CANTON_COORDS[p.canton]) { [lng, lat] = CANTON_COORDS[p.canton]; }
+            if (lng && lat) selectMapProject(id, [lng, lat]);
+        }
+    });
+    sidebar.addEventListener('dblclick', e => {
+        const item = e.target.closest('.map-sidebar-item');
+        if (item) showDetail(parseInt(item.dataset.id));
+    });
+}
+
 // === Gallery View ===
 function renderGallery() {
     const grid = document.getElementById('cardGrid');
@@ -7,11 +57,12 @@ function renderGallery() {
     if (App.filteredProjects.length === 0) {
         grid.innerHTML = '';
         empty.style.display = 'block';
+        document.getElementById('galleryPagination').innerHTML = '';
         return;
     }
     empty.style.display = 'none';
-    const toRender = App.filteredProjects.slice(0, App.renderLimit);
-    grid.innerHTML = toRender.map(p => {
+    const pageItems = getPage(App.filteredProjects);
+    grid.innerHTML = pageItems.map(p => {
         const icon = CATEGORY_ICONS[p.category] || 'apartment';
         const name = displayName(p);
         const muni = displayMuni(p);
@@ -37,27 +88,18 @@ function renderGallery() {
             </div>
             <div class="card-content">
                 <div class="card-title">${esc(name)}</div>
-                <div class="card-location">${esc(muni)}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || '\u2014'}</div>
+                <div class="card-location">${esc(muni)}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || EMPTY}</div>
                 ${hasData ? `<div class="card-kpis">
                     <div><span class="card-kpi-label">GF</span><div class="card-kpi-value">${fmtArea(p.gf_m2)}</div></div>
                     <div><span class="card-kpi-label">GV</span><div class="card-kpi-value">${fmtVol(p.gv_m3)}</div></div>
-                    <div><span class="card-kpi-label">Kosten</span><div class="card-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : '\u2014'}</div></div>
-                    <div><span class="card-kpi-label">CHF/m\u00B2 GF</span><div class="card-kpi-value ${p.chf_per_m2_gf ? 'highlight' : 'muted'}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : '\u2014'}</div></div>
+                    <div><span class="card-kpi-label">Kosten</span><div class="card-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</div></div>
+                    <div><span class="card-kpi-label">CHF/m\u00B2 GF</span><div class="card-kpi-value ${p.chf_per_m2_gf ? 'highlight' : 'muted'}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</div></div>
                 </div>` : `<div class="card-no-data">Keine Kostendaten</div>`}
             </div>
         </div>`;
     }).join('');
-    // Show "load more" if truncated
-    document.getElementById('loadMore')?.remove();
-    if (App.filteredProjects.length > App.renderLimit) {
-        grid.insertAdjacentHTML('afterend',
-            `<div class="load-more" id="loadMore"><button class="btn btn-outline" onclick="App.renderLimit+=60;renderGallery()">Weitere ${Math.min(60, App.filteredProjects.length - App.renderLimit)} von ${App.filteredProjects.length} laden</button></div>`);
-    }
-    grid.querySelectorAll('.card').forEach(c => {
-        const handler = () => showDetail(parseInt(c.dataset.id));
-        c.addEventListener('click', handler);
-        c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); } });
-    });
+    wireCardDelegation();
+    renderPagination(App.filteredProjects.length, 'galleryPagination', renderGallery);
 }
 
 // === Dashboard View ===
@@ -98,7 +140,7 @@ function renderDashboard() {
             <div class="stat-box"><div class="stat-box-value">${all.length}</div><div class="stat-box-label">Projekte</div></div>
             <div class="stat-box"><div class="stat-box-value">${withGF.length}</div><div class="stat-box-label">mit GF</div></div>
             <div class="stat-box"><div class="stat-box-value">${withCost.length}</div><div class="stat-box-label">mit Kosten</div></div>
-            <div class="stat-box"><div class="stat-box-value accent">${stats.median ? fmtN(stats.median) : '\u2014'}</div><div class="stat-box-label">Median CHF/m\u00B2</div></div>
+            <div class="stat-box"><div class="stat-box-value accent">${stats.median ? fmtN(stats.median) : EMPTY}</div><div class="stat-box-label">Median CHF/m\u00B2</div></div>
             <div class="stat-box"><div class="stat-box-value">${sources.size}</div><div class="stat-box-label">Quellen</div></div>
         </div>
         ${withCost.length > 0 ? `<div class="detail-card" style="margin-bottom:var(--space-4)">
@@ -115,7 +157,7 @@ function renderDashboard() {
                         return `<div class="cost-row" style="grid-template-columns:1fr 40px 80px 100px">
                             <div class="cost-name">${esc(cat)}</div>
                             <div class="cost-amount">${s.total}</div>
-                            <div class="cost-amount">${avg ? fmtN(avg) : '\u2014'}</div>
+                            <div class="cost-amount">${avg ? fmtN(avg) : EMPTY}</div>
                             <div class="cost-bar-wrap"><div class="cost-bar" style="width:${barW}%"></div></div>
                         </div>`;
                     }).join('')}
@@ -146,20 +188,21 @@ function renderDashboard() {
 
 // === List View ===
 function renderList() {
+    const pageItems = getPage(App.filteredProjects);
     const tbody = document.getElementById('listBody');
-    tbody.innerHTML = App.filteredProjects.map(p => `
+    tbody.innerHTML = pageItems.map(p => `
         <tr data-id="${p.id}">
-            <td class="num">${p.completion_year || '\u2014'}</td>
+            <td class="num">${p.completion_year || EMPTY}</td>
             <td>${esc(displayMuni(p))}${p.canton ? '<br><small style="color:var(--neutral-400)">' + p.canton + '</small>' : ''}</td>
             <td><strong>${esc(displayName(p))}</strong></td>
             <td>${esc(p.category_label || p.category)}<br><small>${srcTagHTML(p.data_source)}</small></td>
             <td>${tagHTML(p.arbeiten_type)}</td>
-            <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : '\u2014'}</td>
-            <td class="num">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : '\u2014'}</td>
-            <td class="num" style="font-weight:600;${p.chf_per_m2_gf ? 'color:var(--accent-600)' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : '\u2014'}</td>
+            <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
+            <td class="num">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</td>
+            <td class="num" style="font-weight:600;${p.chf_per_m2_gf ? 'color:var(--accent-600)' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</td>
         </tr>
     `).join('');
-    tbody.querySelectorAll('tr').forEach(r => r.addEventListener('click', () => showDetail(parseInt(r.dataset.id))));
+    wireListDelegation();
 
     document.querySelectorAll('#listTable thead th.sortable').forEach(th => {
         th.classList.toggle('sorted', th.dataset.col === App.sortCol);
@@ -169,19 +212,35 @@ function renderList() {
             th.insertAdjacentHTML('beforeend', `<span class="sort-arrow">${App.sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>`);
         }
     });
+    renderPagination(App.filteredProjects.length, 'listPagination', renderList);
 }
 
-// === Map View ===
+// === Map View (GeoJSON clustering) ===
+const MAP_SOURCE_ID = 'projects';
+const MAP_CLUSTER_LAYER = 'clusters';
+const MAP_COUNT_LAYER = 'cluster-count';
+const MAP_POINT_LAYER = 'unclustered-point';
+
+const CANTON_COORDS = {
+    BE: [7.45, 46.95], ZH: [8.55, 47.38], AG: [8.05, 47.39], BS: [7.59, 47.56],
+    BL: [7.73, 47.44], LU: [8.30, 47.05], GR: [9.53, 46.73], VD: [6.63, 46.62],
+    GE: [6.15, 46.20], TI: [8.96, 46.32], SG: [9.38, 47.42], TG: [9.05, 47.57],
+    UR: [8.64, 46.88], SZ: [8.65, 47.02], NW: [8.39, 46.96], OW: [8.25, 46.88],
+    GL: [9.07, 47.04], FR: [7.08, 46.80], VS: [7.60, 46.23],
+    JU: [7.15, 47.35], SO: [7.53, 47.21], NE: [6.93, 47.00],
+    AR: [9.38, 47.38], AI: [9.41, 47.33], SH: [8.64, 47.70], ZG: [8.52, 47.17],
+};
+
 function renderMap() {
     if (!App.map) {
         initMap();
-        // Wait for map to load before adding markers
         App.map.on('load', () => {
-            updateMapMarkers();
+            addClusterLayers();
+            updateMapData();
             renderMapSidebar();
         });
     } else {
-        updateMapMarkers();
+        updateMapData();
         renderMapSidebar();
     }
 }
@@ -196,51 +255,123 @@ function initMap() {
     App.map.addControl(new maplibregl.NavigationControl(), 'top-right');
 }
 
-const CANTON_COORDS = {
-    BE: [7.45, 46.95], ZH: [8.55, 47.38], AG: [8.05, 47.39], BS: [7.59, 47.56],
-    BL: [7.73, 47.44], LU: [8.30, 47.05], GR: [9.53, 46.73], VD: [6.63, 46.62],
-    GE: [6.15, 46.20], TI: [8.96, 46.32], SG: [9.38, 47.42], TG: [9.05, 47.57],
-    UR: [8.64, 46.88], SZ: [8.65, 47.02], NW: [8.39, 46.96], OW: [8.25, 46.88],
-    GL: [9.07, 47.04], FR: [7.08, 46.80], VS: [7.60, 46.23],
-    JU: [7.15, 47.35], SO: [7.53, 47.21], NE: [6.93, 47.00],
-    AR: [9.38, 47.38], AI: [9.41, 47.33], SH: [8.64, 47.70], ZG: [8.52, 47.17],
-};
+function addClusterLayers() {
+    App.map.addSource(MAP_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+    });
 
-function updateMapMarkers() {
-    App.mapMarkers.forEach(m => m.remove());
-    App.mapMarkers = [];
+    App.map.addLayer({
+        id: MAP_CLUSTER_LAYER,
+        type: 'circle',
+        source: MAP_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        paint: {
+            'circle-color': '#0096C7',
+            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 30, 32],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff'
+        }
+    });
 
-    App.filteredProjects.forEach(p => {
+    App.map.addLayer({
+        id: MAP_COUNT_LAYER,
+        type: 'symbol',
+        source: MAP_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-size': 12
+        }
+    });
+
+    App.map.addLayer({
+        id: MAP_POINT_LAYER,
+        type: 'circle',
+        source: MAP_SOURCE_ID,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+            'circle-color': ['match', ['get', 'artClass'],
+                'neubau', '#10B981',
+                'sanierung', '#3B82F6',
+                'umbau', '#F59E0B',
+                '#8891A0'],
+            'circle-radius': 7,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff'
+        }
+    });
+
+    // Click cluster to zoom in
+    App.map.on('click', MAP_CLUSTER_LAYER, e => {
+        const features = App.map.queryRenderedFeatures(e.point, { layers: [MAP_CLUSTER_LAYER] });
+        const clusterId = features[0].properties.cluster_id;
+        App.map.getSource(MAP_SOURCE_ID).getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            App.map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
+    });
+
+    // Click point to select
+    App.map.on('click', MAP_POINT_LAYER, e => {
+        const f = e.features[0];
+        const id = f.properties.id;
+        const coords = f.geometry.coordinates;
+        selectMapProject(id, coords);
+    });
+
+    // Double-click point to open detail
+    App.map.on('dblclick', MAP_POINT_LAYER, e => {
+        e.preventDefault();
+        showDetail(e.features[0].properties.id);
+    });
+
+    // Cursor styles
+    App.map.on('mouseenter', MAP_CLUSTER_LAYER, () => { App.map.getCanvas().style.cursor = 'pointer'; });
+    App.map.on('mouseleave', MAP_CLUSTER_LAYER, () => { App.map.getCanvas().style.cursor = ''; });
+    App.map.on('mouseenter', MAP_POINT_LAYER, () => { App.map.getCanvas().style.cursor = 'pointer'; });
+    App.map.on('mouseleave', MAP_POINT_LAYER, () => { App.map.getCanvas().style.cursor = ''; });
+}
+
+function getArtClass(type) {
+    if (type === 'NEUBAU') return 'neubau';
+    if (type?.includes('SANIERUNG')) return 'sanierung';
+    if (type?.includes('UMBAU')) return 'umbau';
+    return 'other';
+}
+
+function updateMapData() {
+    const features = App.filteredProjects.map(p => {
         let lng, lat;
         if (p.coord_lat && p.coord_lng) {
-            lat = p.coord_lat;
-            lng = p.coord_lng;
+            lat = p.coord_lat; lng = p.coord_lng;
         } else if (p.canton && CANTON_COORDS[p.canton]) {
             [lng, lat] = CANTON_COORDS[p.canton];
-            lng += (Math.random() - 0.5) * 0.08;
-            lat += (Math.random() - 0.5) * 0.05;
+            // Deterministic jitter from project ID (stable across re-renders)
+            const seed = ((p.id * 2654435761) >>> 0) / 4294967296;
+            const seed2 = ((p.id * 340573321) >>> 0) / 4294967296;
+            lng += (seed - 0.5) * 0.08;
+            lat += (seed2 - 0.5) * 0.05;
         } else {
-            return;
+            return null;
         }
+        return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: {
+                id: p.id,
+                name: p.project_name,
+                artClass: getArtClass(p.arbeiten_type),
+                chf: p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : ''
+            }
+        };
+    }).filter(Boolean);
 
-        const el = document.createElement('div');
-        el.className = 'map-marker';
-        if (p.arbeiten_type === 'NEUBAU') el.classList.add('neubau');
-        else if (p.arbeiten_type?.includes('SANIERUNG')) el.classList.add('sanierung');
-        else if (p.arbeiten_type?.includes('UMBAU')) el.classList.add('umbau');
-        else el.classList.add('other');
-
-        el.addEventListener('click', () => selectMapProject(p.id, [lng, lat]));
-        el.addEventListener('dblclick', () => showDetail(p.id));
-        el.title = `${p.project_name}\n${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) + ' CHF/m\u00B2' : ''}`;
-
-        const marker = new maplibregl.Marker({ element: el })
-            .setLngLat([lng, lat])
-            .addTo(App.map);
-        marker._projectId = p.id;
-        marker._lngLat = [lng, lat];
-        App.mapMarkers.push(marker);
-    });
+    const source = App.map.getSource(MAP_SOURCE_ID);
+    if (source) source.setData({ type: 'FeatureCollection', features });
 }
 
 function renderMapSidebar() {
@@ -252,23 +383,12 @@ function renderMapSidebar() {
             ${p.chf_per_m2_gf ? `<div class="map-sidebar-kpi">CHF/m\u00B2 ${fmtN(p.chf_per_m2_gf)}</div>` : ''}
         </div>
     `).join('');
-    sidebar.querySelectorAll('.map-sidebar-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const id = parseInt(item.dataset.id);
-            const marker = App.mapMarkers.find(m => m._projectId === id);
-            if (marker) selectMapProject(id, marker._lngLat);
-        });
-        item.addEventListener('dblclick', () => showDetail(parseInt(item.dataset.id)));
-    });
+    wireSidebarDelegation();
 }
 
 function selectMapProject(id, lngLat) {
-    App.mapMarkers.forEach(m => m.getElement().classList.remove('active'));
-    const marker = App.mapMarkers.find(m => m._projectId === id);
-    if (marker) marker.getElement().classList.add('active');
-
     if (lngLat && App.map) {
-        App.map.flyTo({ center: lngLat, zoom: Math.max(App.map.getZoom(), 10), duration: 800 });
+        App.map.flyTo({ center: lngLat, zoom: Math.max(App.map.getZoom(), 12), duration: 800 });
     }
 
     document.querySelectorAll('.map-sidebar-item').forEach(el => {

@@ -1,10 +1,11 @@
 /* kennwerte-db — Shared utilities, formatting, and application state */
 
 // === Shared State (mutable, accessed by all modules) ===
+const PAGE_SIZE = 30;
+
 const App = {
     db: null,
     map: null,
-    mapMarkers: [],
     currentView: 'gallery',
     searchQuery: '',
     filters: {},
@@ -14,15 +15,16 @@ const App = {
     sortDir: 'desc',
     filterOptions: {},
     detailReturnParams: '',
-    renderLimit: 60,
+    page: 1,
 };
 
 // === Formatting ===
+const EMPTY = '<span class="empty-val">Keine Angabe</span>';
 const CH = new Intl.NumberFormat('de-CH');
-const fmtN = v => v != null ? CH.format(Math.round(v)) : '\u2014';
-const fmtMio = v => v != null ? (v >= 1e6 ? `CHF ${(v / 1e6).toFixed(1)} Mio.` : `CHF ${fmtN(v)}`) : '\u2014';
-const fmtArea = v => v != null ? `${fmtN(v)} m\u00B2` : '\u2014';
-const fmtVol = v => v != null ? `${fmtN(v)} m\u00B3` : '\u2014';
+const fmtN = v => v != null ? CH.format(Math.round(v)) : EMPTY;
+const fmtMio = v => v != null ? (v >= 1e6 ? `CHF ${(v / 1e6).toFixed(1)} Mio.` : `CHF ${fmtN(v)}`) : EMPTY;
+const fmtArea = v => v != null ? `${fmtN(v)} m\u00B2` : EMPTY;
+const fmtVol = v => v != null ? `${fmtN(v)} m\u00B3` : EMPTY;
 
 // === Escape HTML (reuse single element for performance) ===
 const _escEl = document.createElement('div');
@@ -97,6 +99,24 @@ function completenessClass(p) {
     return 'data-minimal';
 }
 
+const BKP_STRUCTURE = [
+    { code: '1', name: 'Vorbereitungsarbeiten', main: true },
+    { code: '2', name: 'Gebäude', main: true },
+    { code: '20', name: 'Baugrube' },
+    { code: '21', name: 'Rohbau 1' },
+    { code: '22', name: 'Rohbau 2' },
+    { code: '23', name: 'Elektroanlagen' },
+    { code: '24', name: 'HLKK-Anlagen' },
+    { code: '25', name: 'Sanitäranlagen' },
+    { code: '26', name: 'Transportanlagen' },
+    { code: '27', name: 'Ausbau 1' },
+    { code: '28', name: 'Ausbau 2' },
+    { code: '29', name: 'Honorare' },
+    { code: '4', name: 'Umgebung', main: true },
+    { code: '5', name: 'Baunebenkosten', main: true },
+    { code: '9', name: 'Ausstattung', main: true },
+];
+
 const ARBEITEN_TYPES = [
     { value: 'NEUBAU', label: 'Neubau' }, { value: 'UMBAU_SANIERUNG', label: 'Sanierung' },
     { value: 'UMBAU', label: 'Umbau' }, { value: 'UMBAU_ERWEITERUNG', label: 'Erweiterung' }
@@ -110,6 +130,53 @@ const CATEGORY_ICONS = {
     zoll: 'local_shipping', wohnen: 'home', parkanlagen: 'park', produktion: 'warehouse',
     technik: 'settings', verschiedenes: 'category', militaer: 'shield', hochbau: 'apartment',
 };
+
+// === Pagination ===
+function getPage(items) {
+    const start = (App.page - 1) * PAGE_SIZE;
+    return items.slice(start, start + PAGE_SIZE);
+}
+
+function renderPagination(totalItems, containerId, onPageChange) {
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+    const el = document.getElementById(containerId);
+    if (!el || totalPages <= 1) { if (el) el.innerHTML = ''; return; }
+
+    const page = App.page;
+    const pages = [];
+    // Always show first, last, current, and neighbors
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+            pages.push(i);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
+    }
+
+    el.innerHTML = `<div class="pagination">
+        <button class="pagination-btn" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">
+            <span class="material-icons-outlined">chevron_left</span>
+        </button>
+        ${pages.map(p => p === '...'
+            ? '<span class="pagination-ellipsis">\u2026</span>'
+            : `<button class="pagination-btn${p === page ? ' active' : ''}" data-page="${p}">${p}</button>`
+        ).join('')}
+        <button class="pagination-btn" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">
+            <span class="material-icons-outlined">chevron_right</span>
+        </button>
+        <span class="pagination-info">${(page-1)*PAGE_SIZE+1}\u2013${Math.min(page*PAGE_SIZE, totalItems)} von ${totalItems}</span>
+    </div>`;
+    // Delegation: wire once per container, re-use on subsequent renders
+    if (!el.dataset.wired) {
+        el.dataset.wired = '1';
+        el.addEventListener('click', e => {
+            const btn = e.target.closest('.pagination-btn[data-page]');
+            if (!btn || btn.disabled) return;
+            const pg = parseInt(btn.dataset.page);
+            if (pg >= 1) { App.page = pg; onPageChange(); }
+        });
+    }
+}
 
 // === Detail field (shared by detail + estimator) ===
 function detailField(label, value, highlight) {

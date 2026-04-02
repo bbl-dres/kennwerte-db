@@ -50,10 +50,14 @@ class KennwerteDB {
     }
 
     getCostRecords(projectId) {
-        return this.query(
-            "SELECT * FROM cost_record WHERE bauprojekt_id = $id ORDER BY CAST(bkp_code AS INTEGER)",
+        const all = this.query(
+            "SELECT * FROM cost_record WHERE bauprojekt_id = $id",
             { $id: projectId }
         );
+        // Split by code pattern: numeric = BKP, letter = eBKP-H
+        const bkp = all.filter(c => /^\d/.test(c.bkp_code)).sort((a, b) => parseInt(a.bkp_code) - parseInt(b.bkp_code));
+        const ebkph = all.filter(c => /^[A-Z]/i.test(c.bkp_code)).sort((a, b) => a.bkp_code.localeCompare(b.bkp_code));
+        return { bkp, ebkph };
     }
 
     getBenchmarks(projectId) {
@@ -78,30 +82,19 @@ class KennwerteDB {
     }
 
     /**
-     * Probe actual image files for a project by trying to HEAD-fetch them.
-     * Returns Promise<string[]> — array of verified image paths.
-     * First image doubles as the thumbnail (no separate thumbnails folder).
-     * Tries .jpeg first, then .png for each slot.
+     * Build image paths for a project based on filesystem convention.
+     * Returns string[] — assumes .jpeg extension; onerror in UI handles .png fallback.
+     * No network probing — images are verified lazily when they render.
      */
-    async getProjectImages(projectId, imagesFound) {
+    getProjectImages(projectId, imagesFound) {
         const count = imagesFound || 0;
         if (count === 0) return [];
-
         const dir = `assets/images/projects/${projectId}`;
-        const probes = [];
+        const images = [];
         for (let i = 1; i <= count; i++) {
-            const num = String(i).padStart(3, '0');
-            probes.push(
-                fetch(`${dir}/${num}.jpeg`, { method: 'HEAD' })
-                    .then(r => r.ok ? `${dir}/${num}.jpeg` : null)
-                    .catch(() => null)
-                    .then(jpeg => jpeg || fetch(`${dir}/${num}.png`, { method: 'HEAD' })
-                        .then(r => r.ok ? `${dir}/${num}.png` : null)
-                        .catch(() => null))
-            );
+            images.push(`${dir}/${String(i).padStart(3, '0')}.jpeg`);
         }
-        const results = await Promise.all(probes);
-        return results.filter(Boolean);
+        return images;
     }
 
     getFilterOptions() {

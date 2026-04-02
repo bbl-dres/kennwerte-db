@@ -4,17 +4,23 @@
 let carouselImages = [];
 let carouselIndex = 0;
 
+let _carouselWired = false;
+
 function openCarousel(images, startIndex = 0) {
     carouselImages = images;
     carouselIndex = startIndex;
-    // Build thumbnails once
     const thumbs = document.getElementById('carouselThumbnails');
     thumbs.innerHTML = images.map((im, idx) =>
-        `<div class="carousel-thumb" style="background-image:url('${im}')" data-idx="${idx}"></div>`
+        `<div class="carousel-thumb" data-idx="${idx}"><img src="${im}" alt="" loading="lazy" onerror="${IMG_ONERROR}"></div>`
     ).join('');
-    thumbs.querySelectorAll('.carousel-thumb').forEach(t => {
-        t.addEventListener('click', () => goToCarouselImage(parseInt(t.dataset.idx)));
-    });
+    // Delegate click once
+    if (!_carouselWired) {
+        _carouselWired = true;
+        thumbs.addEventListener('click', e => {
+            const t = e.target.closest('.carousel-thumb');
+            if (t) goToCarouselImage(parseInt(t.dataset.idx));
+        });
+    }
     updateCarouselView();
     document.getElementById('carouselOverlay').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -41,7 +47,10 @@ function goToCarouselImage(idx) {
 function updateCarouselView() {
     document.getElementById('carouselCounter').textContent = `${carouselIndex + 1} / ${carouselImages.length}`;
     const img = document.getElementById('carouselImage');
-    img.onerror = () => { img.alt = 'Bild nicht verfügbar'; img.style.opacity = '0.3'; };
+    img.onerror = function() {
+        if (this.src.endsWith('.jpeg')) { this.src = this.src.replace('.jpeg', '.png'); }
+        else { this.alt = 'Bild nicht verfügbar'; this.style.opacity = '0.3'; }
+    };
     img.style.opacity = '';
     img.src = carouselImages[carouselIndex];
     document.querySelector('.carousel-nav-btn.prev').disabled = carouselIndex === 0;
@@ -63,6 +72,8 @@ document.addEventListener('keydown', e => {
 // Store images in a global to avoid data-attribute JSON encoding issues
 let _galleryImages = [];
 
+const IMG_ONERROR = "if(this.src.endsWith('.jpeg')){this.src=this.src.replace('.jpeg','.png')}else{this.style.opacity='0.15'}";
+
 function buildImageGallery(images) {
     if (!images || images.length === 0) return '';
     _galleryImages = images;
@@ -71,10 +82,13 @@ function buildImageGallery(images) {
     const thumbs = images.slice(1, maxThumbs + 1);
 
     return `<div class="detail-gallery" id="detailGallery">
-        <div class="detail-main-image clickable" style="background-image:url('${mainImg}')" data-image-index="0"></div>
+        <div class="detail-main-image clickable" data-image-index="0">
+            <img src="${mainImg}" alt="" loading="eager" onerror="${IMG_ONERROR}">
+        </div>
         ${thumbs.map((img, i) => {
             const isLast = i === thumbs.length - 1 && images.length > maxThumbs + 1;
-            return `<div class="detail-thumb clickable" style="background-image:url('${img}')" data-image-index="${i + 1}">
+            return `<div class="detail-thumb clickable" data-image-index="${i + 1}">
+                <img src="${img}" alt="" loading="lazy" onerror="${IMG_ONERROR}">
                 ${isLast ? `<div class="detail-thumb-overlay"><span>Alle ${images.length} Bilder</span></div>` : ''}
             </div>`;
         }).join('')}
@@ -84,55 +98,86 @@ function buildImageGallery(images) {
 // === SIA 416 Area Breakdown ===
 function renderSIA416(p) {
     const gf = p.gf_m2, gv = p.gv_m3, ngf = p.ngf_m2;
-    if (!gf) return '';
-
+    const gsf = p.gsf_m2, ggf = p.ggf_m2, uf = p.uf_m2, buf = p.buf_m2;
     const kf = gf && ngf ? gf - ngf : null;
-    const ratioGvGf = gv && gf ? (gv / gf).toFixed(2) : null;
-    const decNgfGf = ngf && gf ? (ngf / gf).toFixed(2) : null;
-    const pctNgf = ngf && gf ? Math.round((ngf / gf) * 100) : null;
-    const pctKf = kf && gf ? Math.round((kf / gf) * 100) : null;
+    const vf = p.vf_m2, ff = p.ff_m2, nf = p.nf_m2, hnf = p.hnf_m2, nnf = p.nnf_m2, agf = p.agf_m2;
+    const faw = p.faw_m2, fb = p.fb_m2;
+
+    const pctOf = (val, base) => val != null && base ? Math.round((val / base) * 100) : null;
+    const ratioOf = (a, b) => a != null && b ? (a / b).toFixed(2) : null;
 
     const row = (abbr, name, val, unit, pct) => {
-        const valStr = val != null ? fmtN(val) : '\u2014';
-        const pctStr = pct != null ? `${pct}%` : '';
+        const valStr = val != null ? fmtN(val) : EMPTY;
+        const pctStr = pct != null ? `${pct}%` : EMPTY;
         return `<div class="sia-row"><span class="sia-abbr">${abbr}</span><span class="sia-name">${name}</span><span class="sia-val">${valStr} ${unit}</span><span class="sia-pct">${pctStr}</span></div>`;
     };
 
-    return `<div class="detail-card" style="margin-bottom:var(--space-4)">
+    // Percentages for bar chart
+    const pctNgf = pctOf(ngf, gf), pctKf = pctOf(kf, gf);
+    const pctNf = pctOf(nf, gf), pctFf = pctOf(ff, gf), pctVf = pctOf(vf, gf);
+    const pctHnf = pctOf(hnf, gf), pctNnf = pctOf(nnf, gf);
+
+    const barRow = (label, pct, cls) => pct != null
+        ? `<div class="sia-bar ${cls}" style="width:${pct}%"><span>${label} ${pct}%</span></div>`
+        : '';
+
+    return `<div class="detail-card">
         <div class="detail-card-header">Volumen und Flächen nach SIA 416</div>
         <div class="detail-card-body">
             <div class="sia-layout">
                 <div class="sia-table">
                     <div class="sia-section-title">Gebäudevolumen</div>
-                    ${row('GV', 'Gebäudevolumen', gv, 'm\u00B3', '100')}
+                    ${row('GV', 'Gebäudevolumen', gv, 'm\u00B3', gv ? '100' : null)}
+
+                    <div class="sia-section-title" style="margin-top:var(--space-3)">Grundstücksflächen</div>
+                    ${row('GSF', 'Grundstücksfläche', gsf, 'm\u00B2', gsf ? '100' : null)}
+                    ${row('GGF', 'Gebäudegrundfläche', ggf, 'm\u00B2', pctOf(ggf, gsf))}
+                    ${row('UF', 'Umgebungsfläche', uf, 'm\u00B2', pctOf(uf, gsf))}
+                    ${row('BUF', 'Bearbeitete Umgebungsfläche', buf, 'm\u00B2', pctOf(buf, gsf))}
+
                     <div class="sia-section-title" style="margin-top:var(--space-3)">Gebäudeflächen</div>
-                    ${row('GF', 'Geschossfläche', gf, 'm\u00B2', '100')}
+                    ${row('GF', 'Geschossfläche', gf, 'm\u00B2', gf ? '100' : null)}
                     ${row('KF', 'Konstruktionsfläche', kf, 'm\u00B2', pctKf)}
                     ${row('NGF', 'Nettogeschossfläche', ngf, 'm\u00B2', pctNgf)}
+                    ${row('VF', 'Verkehrsfläche', vf, 'm\u00B2', pctVf)}
+                    ${row('FF', 'Funktionsfläche', ff, 'm\u00B2', pctFf)}
+                    ${row('NF', 'Nutzfläche', nf, 'm\u00B2', pctNf)}
+                    ${row('HNF', 'Hauptnutzfläche', hnf, 'm\u00B2', pctOf(hnf, gf))}
+                    ${row('NNF', 'Nebennutzfläche', nnf, 'm\u00B2', pctOf(nnf, gf))}
+                    ${row('AGF', 'Aussengeschossfläche', agf, 'm\u00B2', pctOf(agf, gf))}
                 </div>
+
                 <div class="sia-chart">
-                    <div class="sia-chart-title">Formquotienten</div>
+                    <div class="sia-chart-title">Formquotienten nach eBKP-H (2012)</div>
                     <div class="sia-ratio-row">
-                        <span class="sia-ratio-label">GV/GF</span>
-                        <span class="sia-ratio-value">${ratioGvGf || '\u2014'} m</span>
+                        <span class="sia-ratio-label">FAW/GF</span>
+                        <span class="sia-ratio-desc">Fläche Aussenwand/Geschossfläche</span>
+                        <span class="sia-ratio-value">${ratioOf(faw, gf) || EMPTY}</span>
                     </div>
                     <div class="sia-ratio-row">
-                        <span class="sia-ratio-label">NGF/GF</span>
-                        <span class="sia-ratio-value">${decNgfGf || '\u2014'}</span>
+                        <span class="sia-ratio-label">FB/GF</span>
+                        <span class="sia-ratio-desc">Fläche Bedachung Gebäude/Geschossfläche</span>
+                        <span class="sia-ratio-value">${ratioOf(fb, gf) || EMPTY}</span>
                     </div>
-                    ${gf && ngf ? `
-                    <div class="sia-chart-title" style="margin-top:var(--space-4)">Flächenzerlegung</div>
-                    <div class="sia-bar-group">
-                        <div class="sia-bar-label">GF 100%</div>
-                        <div class="sia-bar-track"><div class="sia-bar sia-bar-gf" style="width:100%"></div></div>
-                    </div>
-                    <div class="sia-bar-group">
-                        <div class="sia-bar-label">NGF ${pctNgf}%</div>
+
+                    ${gf ? `
+                    <div class="sia-bar-chart">
                         <div class="sia-bar-track">
-                            <div class="sia-bar sia-bar-ngf" style="width:${pctNgf}%"></div>
-                            <div class="sia-bar sia-bar-kf" style="width:${pctKf}%;margin-left:auto"></div>
+                            ${barRow('GF', 100, 'sia-bar-l0')}
                         </div>
-                        <div class="sia-bar-label-right">KF ${pctKf}%</div>
+                        ${pctNgf != null || pctKf != null ? `<div class="sia-bar-track sia-bar-split">
+                            ${barRow('NGF', pctNgf, 'sia-bar-l1')}
+                            ${barRow('KF', pctKf, 'sia-bar-l1-alt')}
+                        </div>` : ''}
+                        ${pctNf != null || pctFf != null || pctVf != null ? `<div class="sia-bar-track sia-bar-split">
+                            ${barRow('NF', pctNf, 'sia-bar-l2')}
+                            ${barRow('FF', pctFf, 'sia-bar-l2-alt')}
+                            ${barRow('VF', pctVf, 'sia-bar-l2-alt')}
+                        </div>` : ''}
+                        ${pctHnf != null || pctNnf != null ? `<div class="sia-bar-track sia-bar-split">
+                            ${barRow('HNF', pctHnf, 'sia-bar-l3')}
+                            ${barRow('NNF', pctNnf, 'sia-bar-l3-alt')}
+                        </div>` : ''}
                     </div>` : ''}
                 </div>
             </div>
@@ -196,12 +241,150 @@ function renderPeerComparison(project) {
     </div>`;
 }
 
+// === eBKP-H Cost Table ===
+// Each entry: name, reference unit label, unit type (m2/m3/chf), field on bauprojekt for Bezugsmenge
+const EBKPH_META = {
+    A: { name: 'Grundstück',                      ref: 'GSF', unit: 'm\u00B2', field: 'gsf_m2' },
+    B: { name: 'Vorbereitung',                     ref: 'GSF', unit: 'm\u00B2', field: 'gsf_m2' },
+    C: { name: 'Konstruktion Gebäude',             ref: 'GF',  unit: 'm\u00B2', field: 'gf_m2' },
+    D: { name: 'Technik Gebäude',                  ref: 'GF',  unit: 'm\u00B2', field: 'gf_m2' },
+    E: { name: 'Äussere Wandbekleidung Gebäude',   ref: 'FAW', unit: 'm\u00B2', field: 'faw_m2' },
+    F: { name: 'Bedachung Gebäude',                ref: 'FB',  unit: 'm\u00B2', field: 'fb_m2' },
+    G: { name: 'Ausbau Gebäude',                   ref: 'GF',  unit: 'm\u00B2', field: 'gf_m2' },
+    H: { name: 'Nutzungsspez. Anlage Gebäude',     ref: 'NFH', unit: 'm\u00B2', field: 'nfh_m2' },
+    I: { name: 'Umgebung Gebäude',                 ref: 'BUF', unit: 'm\u00B2', field: 'buf_m2' },
+    J: { name: 'Ausstattung Gebäude',              ref: 'NF',  unit: 'm\u00B2', field: 'nf_m2' },
+    V: { name: 'Planungskosten',                   ref: 'BBJ', unit: 'CHF',     field: null },
+    W: { name: 'Nebenkosten zu Erstellung',        ref: 'GF',  unit: 'm\u00B2', field: 'gf_m2' },
+    Y: { name: 'Reserve, Teuerung',                ref: 'BBW', unit: 'CHF',     field: null },
+    Z: { name: 'Mehrwertsteuer',                   ref: 'BBY', unit: 'CHF',     field: null },
+};
+
+const EBKPH_BW_CODES = 'BCDEFGHIJVW'.split('');
+const EBKPH_CG_CODES = 'CDEFG'.split('');
+const EBKPH_ALL_CODES = Object.keys(EBKPH_META);
+
+function renderEbkph(p, records) {
+    const gf = p.gf_m2, gv = p.gv_m3;
+    const byCode = {};
+    records.forEach(r => { byCode[r.bkp_code] = r; });
+
+    const bwTotal = EBKPH_BW_CODES.reduce((s, c) => s + (byCode[c]?.amount_chf || 0), 0);
+    const total = EBKPH_ALL_CODES.reduce((s, c) => s + (byCode[c]?.amount_chf || 0), 0);
+
+    // Get Bezugsmenge for a code from project fields
+    const getBezug = (code) => {
+        const meta = EBKPH_META[code];
+        if (!meta.field) return null; // CHF-based codes (V, Y, Z) — compute from BW/total
+        return p[meta.field] || null;
+    };
+
+    // For V (Planungskosten): Bezugsmenge = sum of B-J costs
+    // For Y (Reserve): Bezugsmenge = sum of B-W costs
+    // For Z (MWSt): Bezugsmenge = sum of B-Y costs
+    const getChfBezug = (code) => {
+        if (code === 'V') return 'BCDEFGHIJ'.split('').reduce((s, c) => s + (byCode[c]?.amount_chf || 0), 0) || null;
+        if (code === 'Y') return bwTotal || null;
+        if (code === 'Z') return (bwTotal + (byCode['Y']?.amount_chf || 0)) || null;
+        return null;
+    };
+
+    const fmtDec = v => v != null ? CH.format(Number(v.toFixed(2))) : '';
+    const fmtRound = v => v != null ? fmtN(Math.round(v)) : '';
+
+    const row = (code) => {
+        const meta = EBKPH_META[code];
+        const chf = byCode[code]?.amount_chf || 0;
+
+        // Bezugsmenge
+        let bezugVal, bezugUnit, bezugRef;
+        if (meta.unit === 'CHF') {
+            bezugVal = getChfBezug(code);
+            bezugUnit = 'CHF';
+            bezugRef = meta.ref;
+        } else {
+            bezugVal = getBezug(code);
+            bezugUnit = meta.unit;
+            bezugRef = meta.ref;
+        }
+
+        // Kennwert = CHF / Bezugsmenge
+        const kennwert = bezugVal && chf ? chf / bezugVal : null;
+
+        // % B-W (only for B-W scope codes)
+        const pctBW = bwTotal > 0 && EBKPH_BW_CODES.includes(code) ? ((chf / bwTotal) * 100).toFixed(1) + '\u2009%' : '';
+
+        const chfM3 = gv && chf ? fmtDec(chf / gv) : '';
+        const chfM2 = gf && chf ? fmtDec(chf / gf) : '';
+
+        return `<tr>
+            <td>${code}</td>
+            <td>${esc(meta.name)}</td>
+            <td class="num">${bezugVal ? (meta.unit === 'CHF' ? fmtN(bezugVal) : fmtN(bezugVal)) : ''}</td>
+            <td class="num bezug-unit">${bezugVal ? bezugUnit : ''}</td>
+            <td class="num bezug-ref">${bezugVal ? bezugRef : ''}</td>
+            <td class="num">${kennwert != null ? fmtDec(kennwert) : ''}</td>
+            <td class="num">${chf ? fmtN(chf) : ''}</td>
+            <td class="num">${pctBW}</td>
+            <td class="num">${chfM3}</td>
+            <td class="num">${chfM2}</td>
+        </tr>`;
+    };
+
+    const summaryRow = (label, codes) => {
+        const sum = codes.reduce((s, c) => s + (byCode[c]?.amount_chf || 0), 0);
+        return `<tr class="ebkph-summary">
+            <td>${codes[0]}\u2009\u2013\u2009${codes[codes.length - 1]}</td>
+            <td><strong>${label}</strong></td>
+            <td class="num" colspan="3"></td>
+            <td class="num"></td>
+            <td class="num"><strong>${sum ? fmtMio(sum).replace('CHF ', '') : ''}</strong></td>
+            <td class="num"></td>
+            <td class="num"><strong>${gv && sum ? fmtN(Math.round(sum / gv)) + '.\u2013' : ''}</strong></td>
+            <td class="num"><strong>${gf && sum ? fmtN(Math.round(sum / gf)) + '.\u2013' : ''}</strong></td>
+        </tr>`;
+    };
+
+    return `<div class="detail-card" style="margin-bottom:var(--space-4)">
+        <div class="detail-card-header">Kosten nach Hauptgruppen eBKP-H (2012)</div>
+        <div class="detail-card-body" style="padding:0;overflow-x:auto">
+            <table class="ebkph-table">
+                <thead><tr>
+                    <th>Code</th>
+                    <th></th>
+                    <th class="num" colspan="3">Bezugsmenge</th>
+                    <th class="num">Kennwert</th>
+                    <th class="num">CHF</th>
+                    <th class="num">%\u2009B\u2013W</th>
+                    <th class="num">CHF/m\u00B3 GV</th>
+                    <th class="num">CHF/m\u00B2 GF</th>
+                </tr></thead>
+                <tbody>
+                    ${EBKPH_ALL_CODES.map(c => row(c)).join('')}
+                    <tr class="ebkph-total">
+                        <td></td><td>Total</td>
+                        <td class="num" colspan="3"></td><td class="num"></td>
+                        <td class="num">${total ? fmtN(total) : ''}</td>
+                        <td class="num">${total ? '100\u2009%' : ''}</td>
+                        <td class="num"></td><td class="num"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    ${summaryRow('Bauwerkskosten', EBKPH_CG_CODES)}
+                    ${summaryRow('Erstellungskosten', EBKPH_BW_CODES)}
+                    ${summaryRow('Anlagekosten', EBKPH_ALL_CODES)}
+                </tfoot>
+            </table>
+        </div>
+    </div>`;
+}
+
 // === Data Quality Card ===
-function renderDataQuality(p, costs, benchmarks, indexRef, timeline, images) {
+function renderDataQuality(p, bkpCosts, ebkphCosts, benchmarks, indexRef, timeline, images) {
     // Checklist items: [label, hasData]
     const checks = [
         ['Kostendaten', p.construction_cost_total != null],
-        ['BKP-Gliederung', costs.length > 0],
+        ['Kostengliederung', bkpCosts.length > 0 || ebkphCosts.length > 0],
         ['Flächenangaben', p.gf_m2 != null],
         ['Kennwerte (PDF)', benchmarks.length > 0],
         ['Baupreisindex', indexRef != null],
@@ -250,11 +433,10 @@ function renderDataQuality(p, costs, benchmarks, indexRef, timeline, images) {
 }
 
 // === Show Detail View ===
-async function showDetail(id) {
+function showDetail(id) {
     const p = App.db.getProject(id);
     if (!p) return;
 
-    // Capture return URL: current URL without detail param
     const returnUrl = new URLSearchParams(window.location.search);
     returnUrl.delete('detail');
     App.detailReturnParams = returnUrl.toString() ? '?' + returnUrl.toString() : window.location.pathname;
@@ -263,13 +445,13 @@ async function showDetail(id) {
     url.set('detail', id);
     window.history.pushState({}, '', '?' + url.toString());
 
-    const costs = App.db.getCostRecords(id);
+    const { bkp: bkpCosts, ebkph: ebkphCosts } = App.db.getCostRecords(id);
     const benchmarks = App.db.getBenchmarks(id);
     const indexRef = App.db.getIndexReference(id);
     const timeline = App.db.getTimeline(id);
-    const allImages = await App.db.getProjectImages(id, p.images_found).catch(() => []);
+    const allImages = App.db.getProjectImages(id, p.images_found);
 
-    const maxCost = costs.length > 0 ? Math.max(...costs.map(c => c.amount_chf || 0)) : 1;
+    const maxBkpCost = bkpCosts.length > 0 ? Math.max(...bkpCosts.map(c => c.amount_chf || 0)) : 1;
     const name = displayName(p);
     const catLabel = p.category_label || p.category || '';
 
@@ -300,29 +482,47 @@ async function showDetail(id) {
     if (hasImages) html += buildImageGallery(allImages);
     html += `<div class="detail-hero-info">
             <h2>${esc(name)}</h2>
-            <div class="detail-subtitle">${esc(displayMuni(p))}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || '\u2014'}</div>
+            <div class="detail-subtitle">${esc(displayMuni(p))}${p.canton ? ' ' + p.canton : ''} \u00B7 ${p.completion_year || EMPTY}</div>
             <div class="detail-hero-tags">${tagHTML(p.arbeiten_type)} ${srcTagHTML(p.data_source)}</div>
             <div class="detail-hero-kpis">
-                <div class="hero-kpi"><div class="hero-kpi-label">CHF/m\u00B2 GF</div><div class="hero-kpi-value${p.chf_per_m2_gf ? ' accent' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : '\u2014'}</div></div>
-                <div class="hero-kpi"><div class="hero-kpi-label">Geschossfläche</div><div class="hero-kpi-value">${p.gf_m2 ? fmtArea(p.gf_m2) : '\u2014'}</div></div>
-                <div class="hero-kpi"><div class="hero-kpi-label">Gesamtkosten</div><div class="hero-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : '\u2014'}</div></div>
+                <div class="hero-kpi"><div class="hero-kpi-label">CHF/m\u00B2 GF</div><div class="hero-kpi-value${p.chf_per_m2_gf ? ' accent' : ''}">${p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : EMPTY}</div></div>
+                <div class="hero-kpi"><div class="hero-kpi-label">Geschossfläche</div><div class="hero-kpi-value">${p.gf_m2 ? fmtArea(p.gf_m2) : EMPTY}</div></div>
+                <div class="hero-kpi"><div class="hero-kpi-label">Gesamtkosten</div><div class="hero-kpi-value">${p.construction_cost_total ? fmtMio(p.construction_cost_total) : EMPTY}</div></div>
             </div>
         </div>
     </div>`;
 
-    // --- Row 1: Projektbeschrieb + Standort ---
+    // --- Projektbeschrieb (full width) ---
     const desc = p.project_description ? esc(p.project_description) : '';
     const descLong = desc.split(/\s+/).length > 80;
-    const addrParts = [p.street, p.postal_code, displayMuni(p)].filter(Boolean);
-    const addrLine = addrParts.length > 0 ? addrParts.join(' ') : null;
 
-    html += `<div class="detail-grid">
-        <div class="detail-card"><div class="detail-card-header">Projektbeschrieb</div>
+    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
+        <div class="detail-card-header">Projektbeschrieb</div>
         <div class="detail-card-body">
             ${desc
                 ? `<div class="description-text${descLong ? ' truncated' : ''}">${desc}</div>
                    ${descLong ? '<button class="btn btn-sm btn-outline desc-toggle" onclick="this.previousElementSibling.classList.toggle(\'truncated\');this.textContent=this.previousElementSibling.classList.contains(\'truncated\')?\'Mehr anzeigen\':\'Weniger anzeigen\'">Mehr anzeigen</button>' : ''}`
                 : '<span class="detail-field-value empty">Keine Angabe</span>'}
+        </div>
+    </div>`;
+
+    // --- Projektdaten + Standort ---
+    const addrParts = [p.street, p.postal_code, displayMuni(p)].filter(Boolean);
+    const addrLine = addrParts.length > 0 ? addrParts.join(' ') : null;
+
+    html += `<div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-header">Projektdaten</div><div class="detail-card-body">
+            ${detailField('Art der Arbeiten', p.arbeiten_type ? tagHTML(p.arbeiten_type) : null)}
+            ${detailField('Bauherr (Org.)', p.client_org)}
+            ${detailField('Bauherrschaft', p.client_name)}
+            ${detailField('Nutzer', p.user_org)}
+            ${detailField('Architektur', p.architect)}
+            ${detailField('Generalplaner', p.general_planner)}
+            ${detailField('Generalunternehmer', p.general_contractor)}
+            ${detailField('Energiestandard', p.energy_standard)}
+            ${detailField('Bauweise', p.construction_method)}
+            ${detailField('Beschaffungsmodell', p.procurement_model)}
+            ${detailField('Datenquelle', p.data_source ? srcTagHTML(p.data_source) : null)}
         </div></div>
         <div class="detail-card"><div class="detail-card-header">Standort</div><div class="detail-card-body standort-card">
             <div class="standort-coords">
@@ -343,53 +543,19 @@ async function showDetail(id) {
             <table class="standort-table">
                 <thead><tr><th>Land</th><th>Kanton</th><th>Gemeinde</th><th>PLZ</th><th>Strasse</th><th>Hausnr.</th></tr></thead>
                 <tbody><tr>
-                    <td>${esc(p.country || '\u2014')}</td><td>${esc(p.canton || '\u2014')}</td>
-                    <td>${esc(displayMuni(p) || '\u2014')}</td><td>${esc(p.postal_code || '\u2014')}</td>
-                    <td>${esc(p.street || '\u2014')}</td><td>${esc(p.house_number || '\u2014')}</td>
+                    <td>${p.country ? esc(p.country) : EMPTY}</td><td>${p.canton ? esc(p.canton) : EMPTY}</td>
+                    <td>${displayMuni(p) ? esc(displayMuni(p)) : EMPTY}</td><td>${p.postal_code ? esc(p.postal_code) : EMPTY}</td>
+                    <td>${p.street ? esc(p.street) : EMPTY}</td><td>${p.house_number ? esc(p.house_number) : EMPTY}</td>
                 </tr></tbody>
             </table>
         </div></div>
     </div>`;
 
-    // --- Row 2: Projektdaten + Datenqualität ---
+    // --- SIA 416 + Datenqualität ---
     html += `<div class="detail-grid">
-        <div class="detail-card"><div class="detail-card-header">Projektdaten</div><div class="detail-card-body">
-            ${detailField('Art der Arbeiten', p.arbeiten_type ? tagHTML(p.arbeiten_type) : null)}
-            ${detailField('Bauherr (Org.)', p.client_org)}
-            ${detailField('Bauherrschaft', p.client_name)}
-            ${detailField('Nutzer', p.user_org)}
-            ${detailField('Architektur', p.architect)}
-            ${detailField('Generalplaner', p.general_planner)}
-            ${detailField('Generalunternehmer', p.general_contractor)}
-            ${detailField('Energiestandard', p.energy_standard)}
-            ${detailField('Bauweise', p.construction_method)}
-            ${detailField('Beschaffungsmodell', p.procurement_model)}
-            ${detailField('Datenquelle', p.data_source ? srcTagHTML(p.data_source) : null)}
-        </div></div>
-        ${renderDataQuality(p, costs, benchmarks, indexRef, timeline, allImages)}
+        ${renderSIA416(p)}
+        ${renderDataQuality(p, bkpCosts, ebkphCosts, benchmarks, indexRef, timeline, allImages)}
     </div>`;
-
-    // --- Mengen und Kennwerte (full width) ---
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">Mengen und Kennwerte</div>
-        <div class="detail-card-body">
-            <div class="mengen-grid">
-                <div>${detailField('Gebäudevolumen (GV)', p.gv_m3 ? fmtVol(p.gv_m3) : null)}
-                ${detailField('Geschossfläche (GF)', p.gf_m2 ? fmtArea(p.gf_m2) : null)}
-                ${detailField('Nettogeschossfläche (NGF)', p.ngf_m2 ? fmtArea(p.ngf_m2) : null)}
-                ${detailField('Geschosse', p.floors)}
-                ${detailField('Arbeitsplätze', p.workplaces ? fmtN(p.workplaces) : null)}</div>
-                <div>${detailField('Gesamtkosten', p.construction_cost_total ? fmtMio(p.construction_cost_total) : null)}
-                ${detailField('CHF/m\u00B2 GF', p.chf_per_m2_gf ? fmtN(p.chf_per_m2_gf) : null, true)}
-                ${detailField('CHF/m\u00B3 GV', p.gv_m3 && p.construction_cost_total ? fmtN(Math.round(p.construction_cost_total / p.gv_m3)) : null)}
-                ${detailField('NGF/GF', p.ngf_m2 && p.gf_m2 ? (p.ngf_m2 / p.gf_m2).toFixed(2) : null)}
-                ${detailField('GV/GF', p.gv_m3 && p.gf_m2 ? (p.gv_m3 / p.gf_m2).toFixed(2) + ' m' : null)}</div>
-            </div>
-        </div>
-    </div>`;
-
-    // --- SIA 416 ---
-    html += renderSIA416(p);
 
     // --- Peer comparison ---
     html += p.chf_per_m2_gf
@@ -400,52 +566,49 @@ async function showDetail(id) {
         </div>`;
 
     // --- BKP ---
+    const bkpByCode = {};
+    bkpCosts.forEach(c => { bkpByCode[c.bkp_code] = c; });
+
     html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
         <div class="detail-card-header">BKP-Kostenstruktur</div>
         <div class="detail-card-body">
-            ${costs.length > 0 ? costs.map(c => {
-                const isMain = c.bkp_code.length === 1;
-                const barW = Math.round((c.amount_chf / maxCost) * 100);
-                return `<div class="cost-row ${isMain ? 'main-group' : 'sub-group'}">
-                    <div class="cost-code">${c.bkp_code}</div>
-                    <div class="cost-name">${esc(c.bkp_name || '')}</div>
-                    <div class="cost-amount">${fmtN(c.amount_chf)}</div>
-                    <div class="cost-bar-wrap"><div class="cost-bar" style="width:${barW}%"></div></div>
+            ${BKP_STRUCTURE.map(s => {
+                const c = bkpByCode[s.code];
+                const amt = c?.amount_chf;
+                const barW = amt ? Math.round((amt / maxBkpCost) * 100) : 0;
+                return `<div class="cost-row ${s.main ? 'main-group' : 'sub-group'}">
+                    <div class="cost-code">${s.code}</div>
+                    <div class="cost-name">${esc(s.name)}</div>
+                    <div class="cost-amount">${amt ? fmtN(amt) : EMPTY}</div>
+                    <div class="cost-bar-wrap">${barW ? `<div class="cost-bar" style="width:${barW}%"></div>` : ''}</div>
                 </div>`;
-            }).join('') : '<span class="detail-field-value empty">Keine Angabe</span>'}
+            }).join('')}
         </div>
     </div>`;
 
-    // --- Benchmarks ---
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">Kennwerte (aus PDF)</div>
-        <div class="detail-card-body" style="display:flex;gap:var(--space-8);flex-wrap:wrap">
-            ${benchmarks.length > 0 ? benchmarks.map(b => `<div>
-                <div style="font-size:var(--font-size-2xs);color:var(--neutral-500);text-transform:uppercase">${esc(b.benchmark_type.replace(/_/g, ' '))}</div>
-                <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--accent-600);font-family:var(--font-mono)">${fmtN(b.value)}</div>
-            </div>`).join('') : '<span class="detail-field-value empty">Keine Angabe</span>'}
-        </div>
-    </div>`;
+    // --- eBKP-H ---
+    html += renderEbkph(p, ebkphCosts);
 
-    // --- Baupreisindex ---
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">Baupreisindex</div>
-        <div class="detail-card-body">
-            ${detailField('Index', indexRef?.index_name)}
-            ${detailField('Datum', indexRef?.index_date)}
-            ${detailField('Wert', indexRef?.index_value)}
-            ${detailField('Basis', indexRef?.basis_date ? `${indexRef.basis_date} = ${indexRef.basis_value}` : null)}
-        </div>
-    </div>`;
-
-    // --- Termine ---
+    // --- Baupreisindex + Termine (side by side) ---
     const milestoneLabels = { planungsbeginn: 'Planungsbeginn', wettbewerb: 'Wettbewerb', baubeginn: 'Baubeginn', bauende: 'Bauende', bauzeit_monate: 'Bauzeit (Monate)' };
     const timelineMap = {};
     timeline.forEach(t => { timelineMap[t.milestone] = t.value; });
-    html += `<div class="detail-card" style="margin-bottom:var(--space-4)">
-        <div class="detail-card-header">Termine</div>
-        <div class="detail-card-body">
-            ${Object.entries(milestoneLabels).map(([key, label]) => detailField(label, timelineMap[key])).join('')}
+
+    html += `<div class="detail-grid">
+        <div class="detail-card">
+            <div class="detail-card-header">Baupreisindex</div>
+            <div class="detail-card-body">
+                ${detailField('Index', indexRef?.index_name)}
+                ${detailField('Datum', indexRef?.index_date)}
+                ${detailField('Wert', indexRef?.index_value)}
+                ${detailField('Basis', indexRef?.basis_date ? `${indexRef.basis_date} = ${indexRef.basis_value}` : null)}
+            </div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-card-header">Termine</div>
+            <div class="detail-card-body">
+                ${Object.entries(milestoneLabels).map(([key, label]) => detailField(label, timelineMap[key])).join('')}
+            </div>
         </div>
     </div>`;
 
@@ -560,10 +723,10 @@ function computeEstimate() {
             <div class="table-wrap" style="max-height:300px;overflow-y:auto">
                 <table class="data-table" style="font-size:var(--font-size-xs)">
                     <thead><tr><th>Jahr</th><th>Projekt</th><th>Ort</th><th class="num">GF m\u00B2</th><th class="num">CHF/m\u00B2</th><th>Quelle</th></tr></thead>
-                    <tbody>${peers.map(p => `<tr onclick="showDetail(${p.id})" style="cursor:pointer">
-                        <td>${p.completion_year || '\u2014'}</td><td>${esc(p.project_name)}</td>
+                    <tbody>${peers.map(p => `<tr onclick="showDetail(${parseInt(p.id)})" style="cursor:pointer">
+                        <td>${p.completion_year || EMPTY}</td><td>${esc(p.project_name)}</td>
                         <td>${esc(p.municipality || '')} ${p.canton || ''}</td>
-                        <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : '\u2014'}</td>
+                        <td class="num">${p.gf_m2 ? fmtN(p.gf_m2) : EMPTY}</td>
                         <td class="num" style="font-weight:600">${fmtN(p.chf_per_m2_gf)}</td>
                         <td>${srcTagHTML(p.data_source)}</td>
                     </tr>`).join('')}</tbody>

@@ -50,6 +50,7 @@ function restoreFromUrl() {
 
 // === Filter & Search ===
 function applyFilters() {
+    App.page = 1;
     const q = App.searchQuery.toLowerCase();
     App.filteredProjects = App.allProjects.filter(p => {
         if (q && ![p.project_name, p.municipality, p.architect, p.canton, p.project_description]
@@ -83,14 +84,18 @@ function renderFilterPills() {
     const pills = [];
     const names = { data_source: 'Quelle', category: 'Kategorie', canton: 'Kanton',
         arbeiten_type: 'Art', yearFrom: 'Ab', yearTo: 'Bis' };
+    const optLookup = {
+        data_source: App.filterOptions.dataSources,
+        category: App.filterOptions.categories,
+        canton: App.filterOptions.cantons,
+        arbeiten_type: ARBEITEN_TYPES,
+    };
     for (const [key, val] of Object.entries(App.filters)) {
         if (!val) continue;
         if (val instanceof Set) {
             if (val.size === 0) continue;
-            const labels = [...val].map(v =>
-                App.filterOptions.categories?.find(c => c.value === v)?.label
-                || App.filterOptions.dataSources?.find(d => d.value === v)?.label || v
-            );
+            const opts = optLookup[key];
+            const labels = [...val].map(v => opts?.find(o => o.value === v)?.label || v);
             pills.push(`<span class="filter-pill" data-key="${key}">${names[key] || key}: ${labels.join(', ')} <span class="material-icons-outlined">close</span></span>`);
         } else {
             pills.push(`<span class="filter-pill" data-key="${key}">${names[key] || key}: ${val} <span class="material-icons-outlined">close</span></span>`);
