@@ -68,7 +68,15 @@
       "Bash(grep -v \"//\\\\|Verteilung\\\\|\\\\\\\\\\\\\\\\u2013\")",
       "WebFetch(domain:docs.geo.admin.ch)",
       "Bash(node -e \" const initSqlJs = require\\('c:/Users/DavidRasner/Documents/GitHub/kennwerte-db/node_modules/sql.js/dist/sql-wasm.js'\\); // Can't run sql.js easily in Node, let's just check the schema from the extract script \")",
-      "Bash(where sqlite3:*)"
+      "Bash(where sqlite3:*)",
+      "Bash(sqlite3 /c/Users/DavidRasner/Documents/GitHub/kennwerte-db/data/kennwerte.db \".schema\")",
+      "Bash(grep -i \"TODO\\\\|FIXME\\\\|BUG\\\\|HACK\\\\|XXX\\\\|NOTE\\\\|ISSUE\\\\|PROBLEM\" /c/Users/DavidRasner/Documents/GitHub/kennwerte-db/scripts/*.py)",
+      "Bash(sqlite3 /c/Users/DavidRasner/Documents/GitHub/kennwerte-db/data/kennwerte.db \"SELECT COUNT\\(*\\) as total_projects FROM bauprojekt LIMIT 1;\")",
+      "Bash(python3 -c \"import sqlite3; c = sqlite3.connect\\('/c/Users/DavidRasner/Documents/GitHub/kennwerte-db/data/kennwerte.db'\\); print\\(c.execute\\('SELECT COUNT\\(*\\) FROM bauprojekt'\\).fetchone\\(\\)\\)\")",
+      "Bash(ls data/pdfs/bbl_verwaltung*)",
+      "Bash(tasklist)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.pdf\" --force --verbose)",
+      "Bash(PYTHONIOENCODING=utf-8 python)"
     ]
   }
 }

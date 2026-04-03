@@ -855,8 +855,17 @@ function showEstimator() {
     const cantons = App.filterOptions.cantons || [];
 
     document.getElementById('estimatorContent').innerHTML = `
-        <div class="detail-back" id="estimatorBackBtn">
-            <span class="material-icons-outlined">arrow_back</span> Zurück
+        <div class="detail-breadcrumb-bar">
+            <div class="detail-breadcrumb">
+                <a href="?" class="breadcrumb-link">kennwerte-db</a>
+                <span class="material-icons-outlined breadcrumb-sep">chevron_right</span>
+                <span class="breadcrumb-item breadcrumb-current">Kostenschätzung</span>
+            </div>
+            <div class="detail-breadcrumb-actions">
+                <button class="btn btn-outline btn-sm" id="estimatorBackBtn">
+                    <span class="material-icons-outlined">arrow_back</span> Zurück zur Liste
+                </button>
+            </div>
         </div>
         <div class="detail-header"><h2>Kostenschätzung</h2>
             <div class="detail-subtitle">Kennwertbasierte Schätzung auf Basis vergleichbarer Bauprojekte</div>
