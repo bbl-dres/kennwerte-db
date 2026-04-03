@@ -47,6 +47,26 @@ EBKPH_NAMES = {
     "Y": "Reserve, Teuerung", "Z": "Mehrwertsteuer",
 }
 
+# Reverse lookup: BKP name → code (for tables that use names instead of codes)
+BKP_NAME_TO_CODE = {}
+for code, name in BKP_NAMES.items():
+    BKP_NAME_TO_CODE[name.lower()] = code
+# Add common variants
+BKP_NAME_TO_CODE.update({
+    "gebäude": "2", "gebaude": "2",
+    "betriebseinrichtung": "3", "betriebeinrichtungen": "3", "betriebeinrichtung": "3",
+    "baunebenkosten": "5", "nebenkosten": "5",
+    "unvorhergesehenes": "6", "reserve": "6",
+    "generalunternehmer": "7", "mwst": "8", "mehrwertsteuer": "8",
+    "ausstattung": "9",
+    "elektroanlagen": "23", "elektroanlage": "23", "elektroanlag": "23",
+    "heizungsanlage": "24", "hlkk-anlagen": "24", "hlks": "24",
+    "sanitäranlagen": "25", "sanitaranlagen": "25",
+    "transportanlagen": "26",
+    "ausbau 1": "27", "ausbau 2": "28",
+    "honorare": "29", "honorar": "29",
+})
+
 
 # ---------------------------------------------------------------------------
 # Number parsing
@@ -248,26 +268,35 @@ def extract_costs_from_tables(tables):
             # Also look for "Baukosten" label rows with costs in subsequent rows
             first_cell = row[0] if row else ""
 
-            # "Baukosten|Vorbereitungsarbeiten|CHF|11 000" pattern
+            # Name-based matching: "|Baukosten|Vorbereitungsarbeiten|CHF|11 000|"
+            # Only match if row contains "CHF" or "Baukosten" context
             if len(cells) >= 3:
-                label = cells[1] if len(cells) > 1 else ""
-                for bkp_code, bkp_name in BKP_NAMES.items():
-                    if bkp_name.lower() in label.lower().replace(":", ""):
-                        # Find CHF amount
-                        for j in range(2, len(cells)):
-                            val = parse_number(cells[j])
-                            if val and val >= 1000:
-                                costs[bkp_code] = {"name": label.strip().rstrip(":"), "amount": val}
-                                break
-                        break
+                row_text = " ".join(cells).lower()
+                has_cost_context = "chf" in row_text or "baukosten" in row_text or "kosten" in first_cell.lower()
+                if has_cost_context:
+                    for cell_idx in range(len(cells)):
+                        label = cells[cell_idx].strip().rstrip(":")
+                        label_lower = label.lower()
+                        # Try exact BKP name lookup
+                        code = BKP_NAME_TO_CODE.get(label_lower)
+                        if code:
+                            for j in range(cell_idx + 1, len(cells)):
+                                val = parse_number(cells[j])
+                                if val and val >= 1000:
+                                    costs.setdefault(code, {"name": label, "amount": val})
+                                    break
+                            break
 
             # "Gesamtkosten|CHF|700 000" or "Total|15'933'000"
-            if any(k in first_cell.lower() for k in ["gesamtkosten", "total", "anlagekosten"]):
-                for j in range(1, len(cells)):
-                    val = parse_number(cells[j])
-                    if val and val >= 10000:
-                        costs["AK"] = {"name": first_cell, "amount": val}
-                        break
+            for cell_idx, cell_val in enumerate(cells):
+                cell_lower = cell_val.lower().strip()
+                if cell_lower in ["gesamtkosten", "total", "anlagekosten", "total anlagekosten"]:
+                    for j in range(cell_idx + 1, len(cells)):
+                        val = parse_number(cells[j])
+                        if val and val >= 10000:
+                            costs.setdefault("AK", {"name": cell_val.strip(), "amount": val})
+                            break
+                    break
 
     return costs
 
@@ -309,16 +338,18 @@ def extract_quantities_from_tables(tables):
                     if val and 10 <= val <= 200_000:
                         q.setdefault("hnf_m2", val)
 
-            # Benchmarks: CHF/m2, CHF/m3
-            if "chf" in full_row and ("m2" in full_row or "m²" in full_row or "/m" in full_row):
-                if "bkp 2" in full_row or "gebäudekosten" in full_row or "gebaudekosten" in full_row:
-                    for cell in cells:
-                        val = parse_number(cell)
-                        if val and 200 <= val <= 20_000:
-                            q.setdefault("chf_m2_gf_bkp2", val)
+            # Benchmarks: CHF/m² and CHF/m³ — must distinguish unit types
+            is_m2_row = any(k in full_row for k in ["m2", "m²", "/m2", "/m²", "m\u00b2"])
+            is_m3_row = any(k in full_row for k in ["m3", "m³", "/m3", "/m³", "m\u00b3"])
+            has_bkp2 = "bkp 2" in full_row or "gebäudekosten" in full_row or "gebaudekosten" in full_row
 
-            if "chf" in full_row and ("m3" in full_row or "m³" in full_row):
-                if "bkp 2" in full_row or "gebäudekosten" in full_row or "gebaudekosten" in full_row:
+            if "chf" in full_row and is_m2_row and not is_m3_row and has_bkp2:
+                for cell in cells:
+                    val = parse_number(cell)
+                    if val and 200 <= val <= 20_000:
+                        q.setdefault("chf_m2_gf_bkp2", val)
+
+            if "chf" in full_row and is_m3_row and not is_m2_row and has_bkp2:
                     for cell in cells:
                         val = parse_number(cell)
                         if val and 50 <= val <= 5_000:
