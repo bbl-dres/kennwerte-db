@@ -99,6 +99,91 @@ def parse_md_tables(text):
 # Extraction from markdown tables
 # ---------------------------------------------------------------------------
 
+def extract_costs_from_text(text):
+    """Extract BKP costs from inline text (armasuisse format).
+    Handles patterns like:
+      - 'BKP 1 Vorbereitungsarbeiten 454'600'
+      - '1<br>Vorbereitungsarbeiten:  444'000'
+      - '1  Vorbereitungsarbeiten  1'200'000'
+    """
+    costs = {}
+
+    # Expand <br> to newlines for easier parsing
+    expanded = text.replace("<br>", "\n")
+
+    # Pattern 1: "BKP N Name Amount" (Schwarzenburg format)
+    for m in re.finditer(r"BKP\s+(\d{1,2})\s+([A-Za-z\u00c0-\u00ff\s\-/.]+?)\s+([\d\s'\u2019]+?)(?:\s|$)", expanded):
+        code = m.group(1)
+        name = m.group(2).strip().rstrip(":")
+        val = parse_number(m.group(3))
+        if code in BKP_NAMES and val and val >= 1000:
+            costs[code] = {"name": name, "amount": val}
+
+    # Pattern 2: "N  Name  Amount" anywhere in line after <br> expansion
+    lines = expanded.split("\n")
+    for i, line in enumerate(lines):
+        line = line.strip()
+        # Start of line: "1   Vorbereitungsarbeiten  1'200'000"
+        m = re.match(r"^(\d{1,2})\s{2,}([A-Za-z\u00c0-\u00ff\s\-/.]+?):?\s{2,}([\d\s'\u2019.]+)", line)
+        if m:
+            code = m.group(1)
+            name = m.group(2).strip()
+            val = parse_number(m.group(3))
+            if code in BKP_NAMES and val and val >= 1000:
+                costs.setdefault(code, {"name": name, "amount": val})
+            continue
+        # Mid-line: "...text  1   Vorbereitungsarbeiten  1'200'000" (Emmen format)
+        for mm in re.finditer(r"(?:^|\s)(\d{1,2})\s{2,}([A-Za-z\u00c0-\u00ff\s\-/.]+?):?\s{2,}([\d\s'\u2019.]+?)(?:\s*$|\s{2,})", line):
+            code = mm.group(1)
+            name = mm.group(2).strip()
+            val = parse_number(mm.group(3))
+            if code in BKP_NAMES and val and val >= 1000:
+                costs.setdefault(code, {"name": name, "amount": val})
+        # "1  Vorbereitungsarbeiten:" on one line, amount on next
+        m2 = re.match(r"^(\d{1,2})\s+([A-Za-z\u00c0-\u00ff\s\-/.]+?):?\s*$", line)
+        if m2 and i + 1 < len(lines):
+            code = m2.group(1)
+            name = m2.group(2).strip()
+            nxt = lines[i + 1].strip()
+            val = parse_number(nxt)
+            if code in BKP_NAMES and val and val >= 1000:
+                costs.setdefault(code, {"name": name, "amount": val})
+
+    # Gesamtkosten / Total
+    for m in re.finditer(r"(?:Gesamtkosten|Total|Anlagekosten)\s+([\d\s'\u2019.]+)", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and val >= 10000:
+            costs.setdefault("AK", {"name": "Gesamtkosten", "amount": val})
+            break
+
+    # Quantities from inline text
+    quantities = {}
+    m_unit = r"m\s*(?:\[?\s*[23]\s*\]?|[23\u00b2\u00b3])"  # matches m2, m3, m[2], m[3], m², m³
+    for m in re.finditer(rf"Geschossfl[a\u00e4 ]{{1,3}}che\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019]+)\s*{m_unit}", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and 50 <= val <= 200_000:
+            quantities.setdefault("gf_m2", val)
+    for m in re.finditer(rf"(?:Umbauter\s+Raum|Geb[a\u00e4]udevolumen)\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019]+)\s*{m_unit}", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and 100 <= val <= 1_000_000:
+            quantities.setdefault("gv_m3", val)
+    for m in re.finditer(rf"Hauptnutzfl[a\u00e4 ]{{1,3}}che\s*(?:\((?:SIA\s*416|HNF)\))?\s*([\d\s'\u2019]+)\s*{m_unit}", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and 10 <= val <= 200_000:
+            quantities.setdefault("hnf_m2", val)
+    # Benchmarks
+    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and 200 <= val <= 20_000:
+            quantities.setdefault("chf_m2_gf_bkp2", val)
+    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
+        val = parse_number(m.group(1))
+        if val and 50 <= val <= 5_000:
+            quantities.setdefault("chf_m3_gv_bkp2", val)
+
+    return costs, quantities
+
+
 def extract_costs_from_tables(tables):
     """Extract BKP and eBKP-H costs from markdown tables."""
     costs = {}
@@ -325,6 +410,13 @@ def extract_from_markdown(md_path, verbose=False):
     quantities = extract_quantities_from_tables(tables)
     metadata = extract_metadata_from_tables(tables)
     timeline = extract_timeline_from_tables(tables)
+
+    # Supplement with text-based extraction (handles armasuisse inline formats)
+    text_costs, text_quantities = extract_costs_from_text(text)
+    for k, v in text_costs.items():
+        costs.setdefault(k, v)  # table results take priority
+    for k, v in text_quantities.items():
+        quantities.setdefault(k, v)
 
     # Also try regex on full text for fields not in tables
     description = None
