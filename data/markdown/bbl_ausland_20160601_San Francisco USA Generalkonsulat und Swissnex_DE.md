@@ -1,98 +1,102 @@
-**==> picture [125 x 38] intentionally omitted <==**
+<!-- image -->
 
-**==> picture [204 x 39] intentionally omitted <==**
+<!-- image -->
 
-## **16 Gebäude im Ausland** 
+## 16 Gebäude im Ausland
 
-## **San Francisco, USA Generalkonsulat und Swissnex** 
+## San Francisco, USA Generalkonsulat und Swissnex
 
-**==> picture [200 x 180] intentionally omitted <==**
+<!-- image -->
 
-**1** 
+<!-- image -->
 
-**1** Situation **2** Aussicht Nord **3** Fassade Ost **4** Open Space Swissnex 
+| Bauherrschaft          | Bauherrschaft               | Bundesamt für Bauten und Logistik BBL, Bern                                                                                                       |
+|------------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| Nutzer                 | Nutzer                      | Eidgenössisches Departement für auswärtige Angelegenheiten EDA, Bern swissnex, Staatssekretariat für Bildung, Forschung und Innovation SBFI, Bern |
+| Totalunternehmung      | Totalunternehmung           | Plant Construction Company, San Francisco                                                                                                         |
+| Architektur Entwurf    | Architektur Entwurf         | Ducksch + Anliker, Architekten AG, Langenthal                                                                                                     |
+| Architektur Ausführung | Architektur Ausführung      | tef design, San Francisco                                                                                                                         |
+| Fachplaner             | Signaletik Innenarchitektur | Olivier Chételat, San Francisco emo innenarchitektur ag, Langenthal                                                                               |
+| Text                   | Text                        | Werner Huber, Hochparterre, Zürich                                                                                                                |
+| Fotografie             | Fotografie                  | Bruce Damonte, San Francisco                                                                                                                      |
 
-|Bauherrschaft||Bundesamt für Bauten und Logistik BBL, Bern|
-|---|---|---|
-|Nutzer||Eidgenössisches Departement für auswärtige Angelegenheiten EDA, Bern|
-|||swissnex, Staatssekretariat für Bildung, Forschungund Innovation SBFI, Bern|
-|Totalunternehmung||Plant Construction Company, San Francisco|
-|Architektur Entwurf||Ducksch + Anliker, Architekten AG, Langenthal|
-|Architektur Ausführung||tef design, San Francisco|
-|Fachplaner|Signaletik|Olivier Chételat, San Francisco|
-||Innenarchitektur|emo innenarchitektur ag, Langenthal|
-|Text||Werner Huber, Hochparterre, Zürich|
-|Fotografie||Bruce Damonte, San Francisco|
+## Situation und Geschichte
 
+Die zahlreichen Piers, die die Bucht von San Francisco säumen, sind charakteristisch für die Stadt; etliche sind zu einem Wahrzeichen San Franciscos geworden. Im Pier 17 , einer ehemaligen Schiffsumlade- und Lagerhalle, haben das Schweizerische Generalkonsulat, die Plattform für den wissenschaftlichen und technologischen Austausch Swissnex, Schweiz Tourismus und der Swiss Business Hub neue, gemeinsame Räume bezogen. Im
 
+## Konzept und Umsetzung
 
-## **Situation und Geschichte** 
+Die einzelnen Nutzungen - Büros, Schalter des Konsulats, Konferenz- und Eventräume sind in der grossen Halle hintereinander angeordnet, können jedoch je nach Bedarf auch zusammengeschaltet werden. An der Längsseite der Halle sind die Toiletten, Nebenräume und Lager aufgereiht. Zurzeit sind 56 Arbeitsplätze eingerichtet; durch Verdichtung lässt sich diese Anzahl auf 84, maximal sogar auf 96 erhöhen. Um Synergien zwischen den einzelnen Nutzern zu fördern, sind die Arbeitsplätze offen angeordnet. Die
 
-Die zahlreichen Piers, die die Bucht von San benachbarten Pier 15 hat seit 2013 das WisAnbau ergänzt, der auf vorgespannten BetonFrancisco säumen, sind charakteristisch für senschaftsmuseum Exploratorium seinen Sitz, pfählen im Wasser steht. In diesem Anbau, die Stadt; etliche sind zu einem Wahrzeichen das jährlich von gegen 600 000 Personen der im Gegensatz zur Halle von 1911 nicht San Franciscos geworden. Im Pier 17, einer besucht wird. unter Schutz steht, wurden die neuen Räumehemaligen Schiffsumlade- und Lagerhalle, Das historische Gebäude des Pier 17 wurde lichkeiten eingebaut. Wie alle Piers gehört haben das Schweizerische Generalkonsu1911 errichtet. Im Wasser stehen betonumauch Nummer 17 der Port of San Francisco, lat, die Plattform für den wissenschaftlichen mantelte Holzpfähle, die das zwei Meter einem öffentlichen Unternehmen der Stadt und technologischen Austausch Swissnex, über dem Wasserspiegel liegende, aus Holzund des County von San Francisco. Schweiz Tourismus und der Swiss Business balken konstruierte Deck tragen. 1954 wurde Hub neue, gemeinsame Räume bezogen. Im die ursprüngliche Halle im Süden durch einen **Konzept und Umsetzung** Die einzelnen Nutzungen – Büros, Schalter Einbauten für Sitzungszimmer oder EinzelbüUm den industriellen Charakter des Gebäudes Konsulats, Konferenz- und Eventräume – ros sind frei in den Raum gestellt. des zu bewahren, sind die Installationen sind in der grossen Halle hintereinander Die Grundstruktur des Pier 17 ist eine mit offen geführt, und die Materialien wurden roh angeordnet, können jedoch je nach Bedarf Bindern überspannte Holzfachwerkhalle. Im belassen. Dank der Umnutzung der besteauch zusammengeschaltet werden. An der Rahmen der Bauarbeiten wurde das Gebäuhenden Struktur, der flexiblen Nutzung der Längsseite der Halle sind die Toiletten, Nede in Stand gesetzt und die Gebäudehülle Arbeitsplätze und der guten Anbindung an benräume und Lager aufgereiht. Zurzeit sind gedämmt. Sodann wurden unabhängig zur den öffentlichen Verkehr hat das Pier 17 ge56 Arbeitsplätze eingerichtet; durch Verdichbestehenden Struktur die nötigen Raumzellen mäss Standard Nachhaltiges Bauen Schweiz tung lässt sich diese Anzahl auf 84, maxieingebaut und das ganze Gebäude mit LüfSNBS eine überdurchschnittliche Bewertung mal sogar auf 96 erhöhen. Um Synergien tungsanlagen und elektrischen Installationen erhalten. zwischen den einzelnen Nutzern zu fördern, ausgerüstet. sind die Arbeitsplätze offen angeordnet. Die **Grundmengen** Nach SIA 416 Gebäudevolumen 7 824  m[3] Geschossfläche Total 1 750  m[2] **Kosten CHF** 2 Gebäude 8 800 000 21 Rohbau 1 1 650 000 Kennwerte Gebäudekosten SIA 416 9 Ausstattung 150 000 22 Rohbau 2 920 000 BKP 2/m[3] GV 1 125 23 Elektro 1 750 000 BKP 2/m[2] GF 5 029 24 HLKK 640 000 25 Sanitär 420 000 27 Ausbau 1 1 740 000 OECD Consumer Price Index (MEI) – 28 Ausbau 2 590 000 United States Anlagekosten 8 950 000 29 Honorare 1 090 000 Juni 2016 110.5 Basis Januar 2010 100 **Termine** Planungsbeginn April 2014 Baubeginn November 2015 Bauende Juni 2016 
+## Grundmengen
 
-**2** 
+benachbarten Pier 15 hat seit 2013 das Wissenschaftsmuseum Exploratorium seinen Sitz, das jährlich von gegen 600 000 Personen besucht wird.
 
-**==> picture [262 x 265] intentionally omitted <==**
+Das historische Gebäude des Pier 17 wurde 1911 errichtet. Im Wasser stehen betonummantelte Holzpfähle, die das zwei Meter über dem Wasserspiegel liegende, aus Holzbalken konstruierte Deck tragen. 1954 wurde die ursprüngliche Halle im Süden durch einen
 
-**----- Start of picture text -----**<br>
-4<br>**----- End of picture text -----**<br>
+Einbauten für Sitzungszimmer oder Einzelbüros sind frei in den Raum gestellt. Die Grundstruktur des Pier 17 ist eine mit Bindern überspannte Holzfachwerkhalle. Im Rahmen der Bauarbeiten wurde das Gebäude in Stand gesetzt und die Gebäudehülle gedämmt. Sodann wurden unabhängig zur bestehenden Struktur die nötigen Raumzellen eingebaut und das ganze Gebäude mit Lüftungsanlagen und elektrischen Installationen ausgerüstet.
 
+Anbau ergänzt, der auf vorgespannten Betonpfählen im Wasser steht. In diesem Anbau, der im Gegensatz zur Halle von 191 1 nicht unter Schutz steht, wurden die neuen Räumlichkeiten eingebaut. Wie alle Piers gehört auch Nummer 17 der Port of San Francisco, einem öffentlichen Unternehmen der Stadt und des County von San Francisco.
 
-**3 4** 
+Um den industriellen Charakter des Gebäudes zu bewahren, sind die Installationen offen geführt, und die Materialien wurden roh belassen. Dank der Umnutzung der bestehenden Struktur, der flexiblen Nutzung der Arbeitsplätze und der guten Anbindung an den öffentlichen Verkehr hat das Pier 17 gemäss Standard Nachhaltiges Bauen Schweiz SNBS eine überdurchschnittliche Bewertung erhalten.
 
-04.07.17  |    15:38 
+| Nach SIA 416            |                | Gebäudevolumen                      | 7824 m 3               | Geschossfläche Total                                                        | 1750 m 2   |
+|-------------------------|----------------|-------------------------------------|------------------------|-----------------------------------------------------------------------------|------------|
+| Kosten CHF              |                |                                     |                        |                                                                             |            |
+| 2 Gebäude 9 Ausstattung | 8800000 150000 | 21 Rohbau 1 22 Rohbau 2             | 1650000 920000         | Kennwerte Gebäudekosten SIA 416 BKP 2/m 3 GV                                | 1125       |
+| Anlagekosten            | 8950000        | 27 Ausbau 1 28 Ausbau 2 29 Honorare | 1740000 590000 1090000 | OECD Consumer Price Index (MEI) - United States Juni 2016 Basis Januar 2010 | 110.5 100  |
 
-BautenDoku_PIER_17_V.indd   1 
+## Termine
 
-**==> picture [493 x 132] intentionally omitted <==**
+Planungsbeginn
 
-**----- Start of picture text -----**<br>
-5 Fassade Nord<br>6 Fassade Ost<br>7 Grundriss Erdgeschoss<br>8 Grundriss 1. Obergeschoss<br>9 Schalterbereich Generalkonsulat<br>10 Open Space Swissnex<br>PIER NO. 17. 11 Open Space Swissnex<br>12 Open Space Swissnex<br>13 Sitzungsraum Swissnex<br>14 Open Space Swissnex<br>5<br>**----- End of picture text -----**<br>
+April 2014
 
+Baubeginn
 
-**==> picture [540 x 133] intentionally omitted <==**
+November 2015
 
-**----- Start of picture text -----**<br>
-7<br>**----- End of picture text -----**<br>
+Bauende
 
+Juni 2016
 
-**==> picture [540 x 177] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-9 10<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+Situationsplan 1:2000
 
-**==> picture [540 x 298] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-11<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-**==> picture [539 x 132] intentionally omitted <==**
+- 1 Situation
+- 2 Aussicht Nord
+- 3 Fassade Ost
+- 4 Open Space Swissnex
 
-**----- Start of picture text -----**<br>
-Consulate general Swissnex<br>6<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-**==> picture [539 x 133] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-8<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-**==> picture [539 x 298] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-12<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-**==> picture [539 x 177] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-13 14<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-04.07.17  |    15:39 
-
-BautenDoku_PIER_17_V.indd   2 
-
+<!-- image -->

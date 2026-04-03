@@ -120,7 +120,9 @@
       "Bash(PYTHONIOENCODING=utf-8 grep -i \"geschoss\\\\|m2\\\\|m²\\\\|GF\\\\|fläche\" data/markdown/stadt-bern_hochbau_140715_web_erweiterung_gewchsha*.md)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/stadt-stgallen_hochbau_142_movenstr14.md)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/stadt-stgallen_hochbau_142_movenstr14.pdf\" --force --verbose)",
-      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_all.py --source stadt-stgallen)"
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_all.py --source stadt-stgallen)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_all.py --source stadt-bern)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_all.py --source kanton-aargau)"
     ]
   }
 }

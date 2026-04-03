@@ -1,94 +1,174 @@
-**==> picture [200 x 180] intentionally omitted <==**
+<!-- image -->
 
-**==> picture [125 x 38] intentionally omitted <==**
+## 16 Gebäude im Ausland
 
-**==> picture [204 x 39] intentionally omitted <==**
+## Moskau, Pereulok Ogorodnaja Sloboda 2/5, Neubau und Sanierung Schweizerische Botschaft
 
-## **16 Gebäude im Ausland** 
+<!-- image -->
 
-**Moskau, Pereulok Ogorodnaja Sloboda 2/5, Neubau und Sanierung Schweizerische Botschaft** 
+| Bauherrschaft      |                                                                              | Bundesamt für Bauten und Logistik BBL, Bern                                                                                  |
+|--------------------|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| Nutzer             |                                                                              | Eidgenössisches Department für auswärtige Angelegenheiten EDA, Bern                                                          |
+| Architektur        |                                                                              | Brauen Wälchli Architectes, Lausanne                                                                                         |
+| Generalunternehmer | Generalunternehmer                                                           | Lei AG Bau, Moskau                                                                                                           |
+| Fachplaner         | Bauingenieur Landschaftsarchitekt Kunst am Bau Innenausstattung - Signaletik | CSD Ingénieurs, Lausanne L'Atelier du Paysage, Lausanne Anne-Julie Raccoursier, Lausanne EMO Innenarchitektur AG, Langenthal |
+| Text               |                                                                              | Werner Huber, Hochparterre, Zürich                                                                                           |
+| Fotografie         |                                                                              | Yuri Palmin, Moskau                                                                                                          |
 
-Bauherrschaft Bundesamt für Bauten und Logistik BBL, Bern Nutzer Eidgenössisches Department für auswärtige Angelegenheiten EDA, Bern Architektur Brauen Wälchli Architectes, Lausanne Generalunternehmer Lei AG Bau, Moskau Fachplaner Bauingenieur CSD Ingénieurs, Lausanne Landschaftsarchitekt L‘Atelier du Paysage, Lausanne Kunst am Bau Anne-Julie Raccoursier, Lausanne Innenausstattung – Signaletik EMO Innenarchitektur AG, Langenthal Text Werner Huber, Hochparterre, Zürich Fotografie grafie rafie ie e Yuri Palmin, Moskau 
+## Ausgangslage und Aufgabe
 
-Text Fotografie grafie rafie ie e **Ausgangslage und Aufgabe** 
+Mit der wirtschaftlichen und politischen Öffnung der Russischen Föderation hat sich die schweizerische Vertretung in Moskau zu einer der grössten und wichtigsten Botschaften der Eidgenossenschaft entwickelt. Das zentral gelegene Stadthaus aus dem späten 19. Jahrhundert mit dem Anbau aus den 1960er-Jahren genügte den Anforderungen nicht mehr. Obschon im
 
-Mit der wirtschaftlichen und politischen Öffnung der Russischen Föderation hat sich die schweizerische Vertretung in Moskau zu einer der grössten und wichtigsten Botschaften der Eidgenossenschaft entwickelt. Das zentral gelegene Stadthaus aus dem späten 19. Jahrhundert mit dem Anbau aus den 1960er-Jahren genügte den Anforderungen nicht mehr. Obschon im gen nicht mehr. Obschon im en nicht mehr. Obschon im 
+## Konzept und Umsetzung
 
-Garten ein Pavillon aufgestellt wurde, mussten zusätzliche Räume in der Stadt gemietet werden. In Zusammenarbeit mit Vertretern der Stadt Moskau und dem Eidgenössischen Departement für auswärtige Angelegenheiten (EDA) hat das Bundesamt für Bauten und Logistik 2007 einen Projektwettbewerb für die Neugestaltung der Botschaft am angestammten Ort ausge-gestammten Ort ausge-estammten Ort ausge-ge-e- 
+Wie im Wettbewerb vorgegeben, blieb der Altbau bestehen. Er wurde saniert und umgebaut und nimmt in den Obergeschossen die zeitgemäss gestalteten Repräsentationsräume auf. Ein winkelförmiger Neubau legt sich mit seinem Rücken an die Grundstücksgrenzen und spielt so im Innern des Grundstücks einen grosszügigen Hof frei. Gegen aussen ist der Neubau mit Einzelfenstern in ‹russischer Manier› gestaltet, gegen innen öffnet er sich mit einer im Grundriss mehrfach gefalteten Glasfassade. Das Herz des Neubaus ist der zweigeschossige Mehrzweckraum, der auch für öffentliche Veranstaltungen genutzt werden kann. Von hier aus sind alle Geschosse erschlossen. Entsprechend der Fassade sind an der Strasse die kleineren Büros angeordnet, die grösseren Räume, Sitzungszimmer und Cafeteria orientieren sich zum
 
-Mit der wirtschaftlichen und politischen ÖffGarten ein Pavillon aufgestellt wurde, mussten schrieben. Damit sollten alle Abteilungen der nung der Russischen Föderation hat sich die zusätzliche Räume in der Stadt gemietet werden. Botschaft, die Residenz des Botschafters sowie schweizerische Vertretung in Moskau zu einer In Zusammenarbeit mit Vertretern der Stadt weitere Organisationen wie der Swiss Business der grössten und wichtigsten Botschaften der Moskau und dem Eidgenössischen DeparteHub, Schweiz Tourismus oder Pro Helvetia am Eidgenossenschaft entwickelt. Das zentral gelement für auswärtige Angelegenheiten (EDA) hat gleichen Ort konzentriert werden. Mit ihrem gene Stadthaus aus dem späten 19. Jahrhundert das Bundesamt für Bauten und Logistik 2007 Projekt ‹Berner Rosen› gewann das Büro Brauen mit dem Anbau aus den 1960er-Jahren genügte einen Projektwettbewerb für die Neugestaltung Wälchli Architectes aus Lausanne den Wettbeden Anforderungen nicht mehr. Obschon im gen nicht mehr. Obschon im en nicht mehr. Obschon im der Botschaft am angestammten Ort ausge-gestammten Ort ausge-estammten Ort ausge-ge-ewerb. **Konzept und Umsetzung** Wie im Wettbewerb vorgegeben, blieb der AltHof hin. Der Bereich des Botschafters – ArbeitsGrundsätzlich mussten sowohl die schweizerischen bau bestehen. Er wurde saniert und umgebaut räume und Wohnung – liegt im zweiten Oberals auch die russischen Vorschriften eingehalten und nimmt in den Obergeschossen die zeitgemäss geschoss und steht in direkter Verbindung zu den werden, wobei bei Widersprüchen die russischen gestalteten Repräsentationsräume auf. Ein winkelrepräsentativen Räumen im Altbau. Vorrang haben mussten. Rund die Hälfte aller förmiger Neubau legt sich mit seinem Rücken an Entsprechend den unterschiedlichen Funktionen Arbeiten konnten vor Ort, die andere Hälfte in der die Grundstücksgrenzen und spielt so im Innern und Sicherheitsanforderungen gibt es mehrere Schweiz vergeben werden. des Grundstücks einen grosszügigen Hof frei. Zugänge. Die Repräsentationsräume erreicht man Mit der neuen Botschaft in Moskau hat die Gegen aussen ist der Neubau mit Einzelfenstern wie früher durch den Eingang des Altbaus. Der Eidgenossenschaft sowohl eine würdige Vertretung in ‹russischer Manier› gestaltet, gegen innen öffnet Haupteingang der Botschaft liegt an der gegenals auch ein verbindendes Element zwischen er sich mit einer im Grundriss mehrfach gefalteten überliegenden, von einer Loge überwachten Ecke. den beiden Kulturen erschaffen. Schweizerische Glasfassade. Das Herz des Neubaus ist der Hier gelangen die Besucher in den Warteraum, Werte wie Neutralität, Innovation und Zurückhalzweigeschossige Mehrzweckraum, der auch für die Mitarbeitenden betreten das Gebäude durch tung fliessen in dieses nachhaltige Projekt ein und öffentliche Veranstaltungen genutzt werden kann. eine Vereinzelungsanlage. Ein weiterer Zugang, unterstützen den diskret-eleganten Auftritt an einem Von hier aus sind alle Geschosse erschlossen. liegt an der Strassenecke Pereulok Ogorodnaja der für die Schweizer Aussenpolitik wichtigsten Entsprechend der Fassade sind an der Strasse die Sloboda und Gusjatnikow Pereulok: Standorte weltweit. kleineren Büros angeordnet, die grösseren Räume, Für die Umsetzung des Projekts arbeiteten die Sitzungszimmer und Cafeteria orientieren sich zum Planer eng mit russischen Fachleuten zusammen. **Grundmengen** Nach SIA 416 Geschossfläche Total 6 245 m[2] Nutzfläche/Geschossfläche 82% Gebäudevolumen 23 745 m[3] Geschosse 4 Verkehrsfläche/Hauptnutzfläche 18% **Kosten CHF** 0  Grundstück 400 000 20 Baugrube 600 000 Kennwerte Gebäudekosten SIA 416 1 Vorbereitung 410 000 21 Rohbau 1 10 280 000 BKP 2/m[3] GV 1 636 2 Gebäude 38 840 000 22 Rohbau 2 2 800 000 BKP2/m[2] GF 6 220 4 Umgebung 360 000 23 Elektroanlagen 6 400 000 5 Baunebenkosten 1 460 000 24 HLKK 5 700 000 OECD Preisindex (MEI), Russland 6 Mieterspezifischer Ausbau 1 370 000 25 Sanitäranlagen 2 040 000 Dezember 2009 155.194 2005 100 9 Ausstattung 2 100 000 26 Transportanlagen 310 000 27 Ausbau 1 4 090 000 28 Ausbau 2 2 940 000 Anlagekosten 44 940 000 29 Honorare 3 680 000 **Termine** Wettbewerb 2007 Planungsbeginn 2008 Bauende 2018 Baubeginn 2014 
+## Grundmengen
 
-**1** Situation **2** Innenhof Kanzlei **3** Eingang Neubau **4** Altbau Residenz 
+| Nach SIA 416 Gebäudevolumen                                                                                              | 23745 m 3                                                      | Geschossfläche Total Geschosse                                                                                                          | 6245 m 2 4                                                                     | Nutzfläche/Geschossfläche Verkehrsfläche/Hauptnutzfläche                                                    | 82% 18%                 |
+|--------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------|
+| Kosten CHF                                                                                                               |                                                                |                                                                                                                                         |                                                                                |                                                                                                             |                         |
+| 0 Grundstück 1 Vorbereitung 2 Gebäude 4 Umgebung 5 Baunebenkosten 6 Mieterspezifischer Ausbau 9 Ausstattung Anlagekosten | 400000 410000 38840000 360000 1460000 1370000 2100000 44940000 | 20 Baugrube 21 Rohbau 1 22 Rohbau 2 23 Elektroanlagen 24 HLKK 25 Sanitäranlagen 26 Transportanlagen 27 Ausbau 1 28 Ausbau 2 29 Honorare | 600000 10280000 2800000 6400000 5700000 2040000 310000 4090000 2940000 3680000 | Kennwerte Gebäudekosten SIA 416 BKP 2/m 3 GV BKP2/m 2 GF OECD Preisindex (MEI), Russland Dezember 2009 2005 | 1 636 6 220 155.194 100 |
 
-**1** 
+## Termine
 
-**==> picture [767 x 540] intentionally omitted <==**
+Wettbewerb
 
-**----- Start of picture text -----**<br>
-2<br>**----- End of picture text -----**<br>
+2007
 
+Garten ein Pavillon aufgestellt wurde, mussten zusätzliche Räume in der Stadt gemietet werden. In Zusammenarbeit mit Vertretern der Stadt Moskau und dem Eidgenössischen Departement für auswärtige Angelegenheiten (EDA) hat das Bundesamt für Bauten und Logistik 2007 einen Projektwettbewerb für die Neugestaltung der Botschaft am angestammten Ort ausge-
 
-**3** 
+Hof hin. Der Bereich des Botschafters - Arbeitsräume und Wohnung - liegt im zweiten Obergeschoss und steht in direkter Verbindung zu den repräsentativen Räumen im Altbau. Entsprechend den unterschiedlichen Funktionen und Sicherheitsanforderungen gibt es mehrere Zugänge. Die Repräsentationsräume erreicht man wie früher durch den Eingang des Altbaus. Der Haupteingang der Botschaft liegt an der gegenüberliegenden, von einer Loge überwachten Ecke. Hier gelangen die Besucher in den Warteraum, die Mitarbeitenden betreten das Gebäude durch eine Vereinzelungsanlage. Ein weiterer Zugang, liegt an der Strassenecke Pereulok Ogorodnaja Sloboda und Gusjatnikow Pereulok: Für die Umsetzung des Projekts arbeiteten die Planer eng mit russischen Fachleuten zusammen.
 
-**==> picture [355 x 540] intentionally omitted <==**
+Planungsbeginn Baubeginn
 
-**----- Start of picture text -----**<br>
-4<br>**----- End of picture text -----**<br>
+2008
 
+2014
 
-BautenDoku_Moskau_Neu_Umbau_dt.indd   1 
+schrieben. Damit sollten alle Abteilungen der Botschaft, die Residenz des Botschafters sowie weitere Organisationen wie der Swiss Business Hub, Schweiz Tourismus oder Pro Helvetia am gleichen Ort konzentriert werden. Mit ihrem Projekt ‹Berner Rosen› gewann das Büro Brauen Wälchli Architectes aus Lausanne den Wettbewerb.
 
-23.12.19   14:12 
+Grundsätzlich mussten sowohl die schweizerischen als auch die russischen Vorschriften eingehalten werden, wobei bei Widersprüchen die russischen Vorrang haben mussten. Rund die Hälfte aller Arbeiten konnten vor Ort, die andere Hälfte in der Schweiz vergeben werden. Mit der neuen Botschaft in Moskau hat die Eidgenossenschaft sowohl eine würdige Vertretung als auch ein verbindendes Element zwischen den beiden Kulturen erschaffen. Schweizerische Werte wie Neutralität, Innovation und Zurückhaltung fliessen in dieses nachhaltige Projekt ein und unterstützen den diskret-eleganten Auftritt an einem der für die Schweizer Aussenpolitik wichtigsten
 
-**5** Schnitt 
+Standorte weltweit.
 
-**==> picture [539 x 382] intentionally omitted <==**
+Bauende
 
-**----- Start of picture text -----**<br>
-11<br>**----- End of picture text -----**<br>
+2018
 
+<!-- image -->
 
-**==> picture [355 x 151] intentionally omitted <==**
+- 1 Situation
+- 2 Innenhof Kanzlei
+- 3 Eingang Neubau
+- 4 Altbau Residenz
 
-**----- Start of picture text -----**<br>
-5<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-- **6** Süd Ost 
+<!-- image -->
 
-- **7** Nord West 
+20m
 
-- **8** Süd West 
+<!-- image -->
 
-- **9** Obergeschoss 
+<!-- image -->
 
-- **10** Erdgeschoss 
+0
 
-- **11** Kleiner Salon **12** Esssaal **13** Renovation Fassadens ~~t~~ ukatur **14** Renovation Fassadenst ~~ukatur~~ 
+20m
 
-- **15** Renovation Dachaufbau **16** Fassadenrenovation Altbau Innenhof **5** 
+5
 
-**6** 
+10
 
-**==> picture [1135 x 474] intentionally omitted <==**
+<!-- image -->
 
-**----- Start of picture text -----**<br>
-11<br>7<br>8<br>9 10 12<br>**----- End of picture text -----**<br>
+<!-- image -->
 
+<!-- image -->
 
-**==> picture [539 x 404] intentionally omitted <==**
+0
 
-**----- Start of picture text -----**<br>
-13<br>14 15<br>**----- End of picture text -----**<br>
+5
 
+10
 
-**==> picture [539 x 375] intentionally omitted <==**
+0
 
-**----- Start of picture text -----**<br>
-16<br>**----- End of picture text -----**<br>
+5
 
+20m
 
-BautenDoku_Moskau_Neu_Umbau_dt.indd   2 
+10
 
-23.12.19   14:12 
+20m
 
+0
+
+5
+
+10
+
+0
+
+5
+
+10
+
+20m
+
+20m
+
+10
+
+20m
+
+<!-- image -->
+
+<!-- image -->
+
+0
+
+5
+
+10
+
+0
+
+20m
+
+50
+
+100
+
+200m
+
+0
+
+20m
+
+5
+
+10
+
+<!-- image -->
+
+<!-- image -->
+
+<!-- image -->
+
+<!-- image -->
+
+20m
+
+0
+
+50
+
+100
+
+200m
+
+20m

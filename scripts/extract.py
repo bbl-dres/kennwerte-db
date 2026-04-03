@@ -414,8 +414,8 @@ def upsert_project(conn, pdf_filename, source, category, file_info,
                 user_org, architect, general_planner, general_contractor,
                 project_description, gf_m2, gv_m3, ngf_m2, floors,
                 workplaces, energy_standard, construction_cost_total,
-                pdf_filename, pdf_category_folder, data_source, thumbnail_path,
-                coord_lat, coord_lng
+                data_source, thumbnail_path, coord_lat, coord_lng,
+                pdf_filename, pdf_category_folder
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (*fields, pdf_filename, category))
         pid = cur.lastrowid
