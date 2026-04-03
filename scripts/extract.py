@@ -55,6 +55,7 @@ SOURCES = {
     "bbl": "Bundesamt für Bauten und Logistik (BBL)",
     "armasuisse": "armasuisse Immobilien (VBS)",
     "stadt-zuerich": "Stadt Zürich, Hochbaudepartement",
+    "kanton-aargau": "Kanton Aargau, Immobilien Aargau (DFR)",
 }
 
 # Source-specific extraction configs
@@ -80,6 +81,15 @@ SOURCE_CONFIGS = {
     "stadt-zuerich": {
         "languages": ["deu"],
         "layout": "prose_heavy",
+        "gf_range": (50, 200_000),
+        "gv_range": (100, 1_000_000),
+        "cost_bkp2_range": (50_000, 500_000_000),
+        "cost_other_range": (5_000, 200_000_000),
+        "benchmark_range": (200, 20_000),
+    },
+    "kanton-aargau": {
+        "languages": ["deu"],
+        "layout": "structured_table",
         "gf_range": (50, 200_000),
         "gv_range": (100, 1_000_000),
         "cost_bkp2_range": (50_000, 500_000_000),
@@ -117,7 +127,9 @@ CANTON_MAP = {
     "Affoltern am Albis": "ZH", "Wädenswil": "ZH", "Winterthur": "ZH",
     "Hinwil": "ZH",
     "Basel": "BS", "Liestal": "BL", "Rheinfelden": "AG", "Windisch": "AG",
-    "Wildegg": "AG", "Koblenz": "AG",
+    "Wildegg": "AG", "Koblenz": "AG", "Aarau": "AG", "Wohlen": "AG",
+    "Brugg": "AG", "Liebegg": "AG", "Gränichen": "AG", "Lenzburg": "AG",
+    "Baden": "AG", "Muri": "AG", "Stein": "AG",
     "Lausanne": "VD", "Payerne": "VD",
     "Bellinzona": "TI", "Chiasso": "TI", "Tenero": "TI", "Monteceneri": "TI",
     "Davos": "GR", "Seelisberg": "UR",

@@ -1,6 +1,23 @@
-# kennwerte-db
+<p align="center">
+  <img src="assets/Social1.jpg" alt="kennwerte-db — PDFs to structured construction cost benchmarks" width="800">
+</p>
 
-Open-source construction cost benchmark database for Swiss public buildings. Collects, structures, and presents cost Kennwerte (CHF/m² GF, CHF/m³ GV, BKP/eBKP-H breakdowns) from realised projects to support early-stage cost estimation and portfolio-level cost analysis.
+<h1 align="center">kennwerte-db</h1>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/SQLite-in--browser-003B57?logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/MapLibre_GL-JS-396CB2?logo=maplibre&logoColor=white" alt="MapLibre GL JS">
+  <img src="https://img.shields.io/badge/deploy-GitHub_Pages-222?logo=github&logoColor=white" alt="GitHub Pages">
+</p>
+
+<p align="center">
+  Open-source construction cost benchmark database for Swiss public buildings.<br>
+  Collects, structures, and presents cost Kennwerte (CHF/m² GF, CHF/m³ GV, BKP/eBKP-H breakdowns)<br>
+  from realised projects to support early-stage cost estimation and portfolio-level cost analysis.
+</p>
 
 <table>
   <tr>

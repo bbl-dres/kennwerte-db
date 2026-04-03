@@ -76,7 +76,32 @@
       "Bash(ls data/pdfs/bbl_verwaltung*)",
       "Bash(tasklist)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.pdf\" --force --verbose)",
-      "Bash(PYTHONIOENCODING=utf-8 python)"
+      "Bash(PYTHONIOENCODING=utf-8 python)",
+      "Bash(ls \"c:\\\\Users\\\\DavidRasner\\\\Documents\\\\GitHub\\\\kennwerte-db\\\\data\\\\pdfs/\"*.sh)",
+      "Bash(ls \"c:\\\\Users\\\\DavidRasner\\\\Documents\\\\GitHub\\\\kennwerte-db\\\\data\\\\pdfs/\"*.py)",
+      "Bash(mv data/pdfs/download.sh scripts/download_bbl.sh)",
+      "Bash(mv data/pdfs/download_armasuisse.sh scripts/download_armasuisse.sh)",
+      "Bash(mv data/pdfs/download_stadt_zuerich.sh scripts/download_stadt_zuerich.sh)",
+      "Bash(ls scripts/*.sh scripts/*.py)",
+      "WebFetch(domain:jimmysong.io)",
+      "WebFetch(domain:procycons.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:codecut.ai)",
+      "WebFetch(domain:unstract.com)",
+      "WebFetch(domain:modal.com)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c \" import sqlite3 conn = sqlite3.connect\\('data/kennwerte.db'\\) print\\('=== Final DB Stats \\(after pipeline fixes\\) ==='\\) total = conn.execute\\('SELECT COUNT\\(*\\) FROM bauprojekt'\\).fetchone\\(\\)[0] print\\(f'Total projects: {total}'\\) print\\(\\) for g, n in conn.execute\\('SELECT quality_grade, COUNT\\(*\\) FROM extraction_log GROUP BY quality_grade ORDER BY quality_grade'\\): print\\(f' Grade {g}: {n}'\\) print\\(\\) for src, n, wc, wgf in conn.execute\\(''' SELECT data_source, COUNT\\(*\\), SUM\\(CASE WHEN construction_cost_total IS NOT NULL THEN 1 ELSE 0 END\\), SUM\\(CASE WHEN gf_m2 IS NOT NULL THEN 1 ELSE 0 END\\) FROM bauprojekt GROUP BY data_source ORDER BY COUNT\\(*\\) DESC '''\\): print\\(f' {src:20s}: {n:4d} total, {wc:4d} with costs, {wgf:4d} with GF'\\) print\\(\\) cost_t = conn.execute\\('SELECT COUNT\\(*\\) FROM cost_record'\\).fetchone\\(\\)[0] print\\(f'Cost records: {cost_t}'\\) conn.close\\(\\) \")",
+      "Bash(ls data/pdfs/stadt-bern_*)",
+      "Bash(ls data/pdfs/stadt-stgallen_*)",
+      "Bash(ls data/pdfs/kanton-aargau_*)",
+      "Bash(ls data/pdfs/*.pdf)",
+      "Bash(pip show:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/pdf_to_markdown.py \"data/pdfs/stadt-stgallen_hochbau_142_movenstr14.pdf\" --verbose)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/pdf_to_markdown.py \"data/pdfs/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.pdf\" --verbose)",
+      "Bash(ls c:/Users/DavidRasner/Documents/GitHub/kennwerte-db/data/markdown/*.md)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/pdf_to_markdown.py --all --force)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/stadt-stgallen_hochbau_142_movenstr14.md --verbose)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.md --verbose)",
+      "Bash(sqlite3 data/kennwerte.db \".tables\")"
     ]
   }
 }

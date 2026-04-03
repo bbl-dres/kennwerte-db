@@ -4,92 +4,233 @@
 
 **kennwerte-db** is an open-source construction cost benchmark database for Swiss public buildings. It collects, structures, and presents cost Kennwerte (CHF/m² GF, CHF/m³ GV, BKP/eBKP-H breakdowns) from realised Bauprojekte to support early-stage cost estimation (Kostenschätzung, Kostenvoranschlag) and portfolio-level cost analysis.
 
-**Related documents**: [SOURCES.md](SOURCES.md) (data source inventory) · [REQUIREMENTS.md](REQUIREMENTS.md) · [DATAMODEL.md](DATAMODEL.md) · [WIREFRAMES.md](WIREFRAMES.md)
+**Related documents**: [SOURCES.md](SOURCES.md) (data source inventory) · [REQUIREMENTS.md](REQUIREMENTS.md) · [DATAMODEL.md](DATAMODEL.md)
 
 ---
 
-## Purpose of This Document
+## Current Pipeline (v1 — Regex-based)
 
-Documents the extraction pipeline architecture: how PDFs are downloaded, text extracted (PyMuPDF + Tesseract OCR), images recovered, structured data parsed (regex), quality tracked, and loaded into the SQLite database. This is the operational guide for running and extending the pipeline.
+The current pipeline extracts text directly from PDFs using PyMuPDF (with Tesseract OCR fallback for scanned pages), then applies regex patterns to extract structured fields. This works well for BBL PDFs (~80% extraction rate) but struggles with layout variance in armasuisse and Stadt Zürich documents.
 
----
+### Architecture
 
-## Architecture Overview
-
-```mermaid
-flowchart TD
-    subgraph Input["1. PDF Sources"]
-        PDF[PDF files in data/pdfs/<br/>source_category_name.pdf]
-    end
-
-    subgraph Extract["2. extract.py (per PDF)"]
-        OPEN[Open with PyMuPDF]
-        TEXT{Page has<br/>text layer?}
-        PYMUPDF[get_text]
-        OCR[Tesseract OCR<br/>300 DPI render]
-        IMAGES[Extract all<br/>embedded images]
-        THUMB[Render page-1<br/>thumbnail 400px]
-        REGEX[Source-specific<br/>regex parsing]
-        GRADE[Compute quality<br/>grade A-E]
-    end
-
-    subgraph Output["3. Output"]
-        DB[(SQLite DB<br/>data/kennwerte.db)]
-        THUMBS[assets/images/thumbnails/]
-        PHOTOS[assets/images/projects/id/]
-        LOG[extraction_log table]
-    end
-
-    PDF -->|one at a time| OPEN
-    OPEN --> TEXT
-    TEXT -->|yes| PYMUPDF
-    TEXT -->|no| OCR
-    PYMUPDF --> REGEX
-    OCR --> REGEX
-    OPEN --> IMAGES --> PHOTOS
-    OPEN --> THUMB --> THUMBS
-    REGEX --> GRADE
-    GRADE --> DB
-    GRADE --> LOG
 ```
+PDF Input (data/pdfs/)
+    │
+    ├── 1. Text extraction ─── PyMuPDF get_text() ──┐
+    │                          Tesseract OCR (300dpi) ┤
+    │                          Language: DE/FR/IT     │
+    │                                                  ▼
+    ├── 2. Text normalization ── Ligature fix (ﬂ→fl) ─┐
+    │                            Multi-line BKP merge  │
+    │                            Unicode quote fix     │
+    │                                                  ▼
+    ├── 3. Regex extraction ──── Metadata (DE/FR/IT) ──┐
+    │                            Quantities (GF/GV)    │
+    │                            BKP/eBKP-H costs      │
+    │                            Benchmarks, Timeline  │
+    │                            Description           │
+    │                                                  ▼
+    ├── 4. Image extraction ──── Thumbnails (400px) ───┐
+    │                            All embedded images   │
+    │                                                  ▼
+    ├── 5. Geocoding ─────────── geo.admin.ch (CH) ────┐
+    │                            Geoapify (foreign)    │
+    │                                                  ▼
+    └── 6. DB upsert ─────────── SQLite (kennwerte.db)
+                                  extraction_log
+                                  quality grade A-E
+```
+
+### Results (v1)
+
+| Source | Documents | With Costs | With GF | Extraction Rate |
+|---|---|---|---|---|
+| BBL | 144 | 113 (78%) | 86 (60%) | Good |
+| armasuisse | 53 | 26 (49%) | 17 (32%) | Moderate |
+| Stadt Zürich | 36 | 0 (0%) | 0 (0%) | Poor |
+| **Total** | **233** | **139 (60%)** | **103 (44%)** | |
+
+### Limitations
+
+- **Layout-dependent**: regex breaks when PDF layouts change (different table structures, prose vs. tables)
+- **OCR quality varies**: Tesseract struggles with design-heavy brochures
+- **Per-source maintenance**: each new source may need custom regex patterns
+- **No table structure preservation**: raw text extraction loses table column alignment
+- **Stadt Zürich unprocessable**: costs embedded in prose paragraphs, not structured tables
+
+---
+
+## Planned Pipeline (v2 — Markdown-first)
+
+### Problem Statement
+
+The v1 regex approach fails when:
+1. Cost tables use different column layouts across sources
+2. Values span multiple lines (armasuisse)
+3. Costs are embedded in prose (Stadt Zürich)
+4. OCR produces noisy text that regex can't match
+5. New sources have unforeseen formats
+
+### Approaches Evaluated
+
+| Approach | Pros | Cons | Verdict |
+|---|---|---|---|
+| **A. More regex patterns** | No new dependencies, fast | O(n) patterns per source, still brittle | Exhausted |
+| **B. PDF → Markdown → Regex** | Cleaner input for regex | Tables still lost in markdown from bad parsers | Partial solution |
+| **C. PDF → Markdown → LLM** | Handles any layout, any language | API costs, requires schema prompting | **Recommended** |
+| **D. Vision LLM on page images** | Handles scans natively | Expensive per page, slow | Overkill for text PDFs |
+| **E. Fine-tuned extraction model** | Best accuracy | Needs training data, maintenance burden | Future option |
+
+### Tool Comparison (PDF → Markdown)
+
+Evaluated in April 2026:
+
+| Tool | Table Quality | OCR | CPU Speed | License | Best For |
+|---|---|---|---|---|---|
+| **Docling** (IBM) | **Best** (97.9% cell accuracy) | Good (pluggable backends) | 3.1s/page | MIT | Complex tables |
+| **Marker** (Datalab) | Good | Good (Surya, 90+ langs) | 16s/page | GPL + CC-BY-NC-SA | Multi-column layouts |
+| **MinerU** (OpenDataLab) | Good | Good (84 langs) | 3.3s/page | Apache 2.0 | General purpose |
+| **PyMuPDF4LLM** | Basic (rule-based) | Via Tesseract | **<0.5s/page** | AGPL | Fast pre-filter |
+| **Nougat** (Meta) | Academic only | Trained on arXiv | 30+s/page | MIT | Not suitable |
+| **olmOCR** (Allen AI) | Good | **Best** (82.4 benchmark) | GPU required | Apache 2.0 | Bulk OCR |
+
+### Selected Architecture (v2)
+
+```
+PDF Input
+    │
+    ▼
+┌─ Stage 1: PDF → Markdown + Images ─────────────────┐
+│                                                      │
+│  PyMuPDF4LLM (fast pre-check: has text layer?)      │
+│       │                    │                         │
+│       ▼                    ▼                         │
+│  Native text PDFs     Scanned/image pages            │
+│       │                    │                         │
+│       ▼                    ▼                         │
+│  Docling               Docling + OCR                 │
+│       │                    │                         │
+│       └────────┬───────────┘                         │
+│                ▼                                     │
+│  Clean Markdown per PDF (data/markdown/{id}.md)      │
+│  Extracted images (assets/images/projects/{id}/)     │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─ Stage 2: Markdown → Structured JSON ───────────────┐
+│                                                      │
+│  Option A: LLM extraction (Claude API)               │
+│    - Schema-based prompting                          │
+│    - Handles any layout, DE/FR/IT natively           │
+│    - ~$0.01-0.05 per PDF                             │
+│                                                      │
+│  Option B: Enhanced regex on clean markdown           │
+│    - Tables preserved as markdown tables              │
+│    - Better than raw text regex                       │
+│    - Zero API cost                                   │
+│                                                      │
+│  Option C: Hybrid (regex first, LLM fallback)        │
+│    - Regex for well-structured BBL/Bern PDFs         │
+│    - LLM for difficult armasuisse/ZH PDFs            │
+│    - Cost-optimized                                  │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+    │
+    ▼
+  Structured JSON → DB upsert (same as v1)
+```
+
+### Why Docling
+
+1. **Table extraction is critical** — BKP cost tables are the core data. Docling's TableFormer model achieves 97.9% cell accuracy, far ahead of regex on raw text.
+2. **Runs on CPU** — 3.1s/page without GPU, viable for laptop processing of ~400 PDFs.
+3. **MIT license** — no commercial restrictions, unlike Marker (GPL) or PyMuPDF (AGPL).
+4. **Active development** — IBM's Granite-Docling-258M model (Jan 2026) is optimized for exactly this use case.
+5. **Pluggable OCR** — can use Tesseract (already installed) or Surya for better multilingual accuracy.
+
+### Why Markdown as Intermediate Format
+
+1. **Tables preserved** — cost breakdowns render as markdown tables with aligned columns
+2. **LLM-native** — Claude/GPT-4o are fluent in markdown; extraction prompts produce better results
+3. **Human-debuggable** — `data/markdown/123.md` is readable, inspectable, diffable
+4. **Cacheable** — markdown can be regenerated only when PDF changes (hash-based)
+5. **Lighter than HTML/JSON** — more token-efficient for LLM context windows
+
+### Benchmark Results (tested April 2026)
+
+Tested on the same St. Gallen PDF (4 pages, structured cost table):
+
+| Converter | Time | Chars | Table Quality |
+|---|---|---|---|
+| **PyMuPDF4LLM** | **1.8s** | 5,917 | Good — markdown tables with `\|` separators |
+| **Docling** | 187s | 7,947 | Excellent — cleaner column alignment |
+
+Both produce parseable markdown tables from BKP cost breakdowns. PyMuPDF4LLM is **100x faster** and sufficient for text-layer PDFs. Docling reserved for scanned/image-only pages.
+
+Example markdown output (St. Gallen cost table):
+```markdown
+|**Baukosten**|Vorbereitungsarbeiten|CHF|11 000|
+||Gebäude|CHF|457 000|
+||Gesamtkosten|CHF|700 000|
+|**m3 nach SIA 416**|Gebäudevolumen|m3|2159|
+|**CHF/m3 nach SIA 416**|Gebäudekosten (BKP 2)|CHF/m3|212|
+```
+
+### Implementation Status
+
+| Phase | Task | Status |
+|---|---|---|
+| **2a** | Install PyMuPDF4LLM + Docling, `pdf_to_markdown.py` | Done |
+| **2b** | Batch convert all 373 PDFs to markdown | In progress |
+| **2c** | Stage 2: markdown to structured JSON extraction | Next |
+| **2d** | LLM fallback for remaining failures | Planned |
 
 ---
 
 ## File Layout
 
 ```
+scripts/
+├── download_bbl.sh               ← BBL download script
+├── download_armasuisse.sh        ← armasuisse download script
+├── download_stadt_zuerich.sh     ← Stadt Zürich download script
+├── download_stadt_bern.py        ← Stadt Bern download script
+├── download_stadt_stgallen.py    ← Stadt St. Gallen download script
+├── download_kanton_aargau.py     ← Kanton Aargau download script
+├── pdf_to_markdown.py            ← Stage 1: PDF → Markdown (PyMuPDF4LLM / Docling)
+├── extract.py                    ← single PDF → DB upsert (v1 regex)
+└── extract_all.py                ← batch wrapper (v1)
 data/
-├── pdfs/                       ← downloaded PDFs (flat, gitignored)
+├── pdfs/                         ← downloaded PDFs (flat, gitignored)
 │   ├── bbl_verwaltung_2023_Zollikofen.pdf
-│   ├── armasuisse_militaer_WaffenplatzThun.pdf
-│   ├── stadt-zuerich_hochbau_schulanlage-allmend.pdf
-│   ├── download.sh             ← BBL download script
-│   ├── download_armasuisse.sh
-│   └── download_stadt_zuerich.sh
-├── kennwerte.db                ← SQLite database
-└── pdf_texts.json              ← legacy text cache (deprecated)
+│   ├── armasuisse_militaer_UUID.pdf
+│   ├── stadt-zuerich_hochbau_schulanlage.pdf
+│   ├── stadt-bern_hochbau_bauflyer.pdf
+│   ├── stadt-stgallen_hochbau_142_name.pdf
+│   └── kanton-aargau_hochbau_033_name.pdf
+├── markdown/                     ← (v2) converted markdown per PDF
+├── kennwerte.db                  ← SQLite database
+└── pdf_texts.json                ← legacy text cache (deprecated)
 assets/
 ├── images/
-│   ├── thumbnails/             ← page-1 JPEG per project (400px wide)
-│   │   ├── 1.jpg
-│   │   └── ...
-│   └── projects/               ← all extracted photos
-│       ├── 1/
-│       │   ├── 001.jpg
-│       │   └── ...
-│       └── ...
-scripts/
-├── extract.py                  ← single PDF → DB upsert
-└── extract_all.py              ← batch wrapper
+│   ├── thumbnails/               ← page-1 JPEG per project (400px wide)
+│   └── projects/                 ← all extracted photos per project
 ```
 
 ### File Naming Convention
 
-PDFs stored flat with the pattern: `{source}_{category}_{original-filename}.pdf`
+PDFs stored flat: `{source}_{category}_{original-filename}.pdf`
 
-**Sources**: `bbl`, `armasuisse`, `stadt-zuerich`, (future: `stadt-bern`, `kanton-bern`, `stadt-sg`, `kanton-ag`)
-
-**Categories**: `verwaltung`, `bundeshaus`, `ausland`, `bildung`, `sport`, `kultur`, `justiz`, `zoll`, `wohnen`, `parkanlagen`, `produktion`, `technik`, `verschiedenes`, `militaer`, `hochbau`
+| Source prefix | Organisation |
+|---|---|
+| `bbl` | Bundesamt für Bauten und Logistik |
+| `armasuisse` | armasuisse Immobilien (VBS) |
+| `stadt-zuerich` | Stadt Zürich Hochbaudepartement |
+| `stadt-bern` | Hochbau Stadt Bern |
+| `stadt-stgallen` | Stadt St. Gallen Hochbauamt |
+| `kanton-aargau` | Immobilien Aargau |
 
 ---
 
@@ -98,36 +239,63 @@ PDFs stored flat with the pattern: `{source}_{category}_{original-filename}.pdf`
 ### Prerequisites
 
 ```bash
+# v1 (regex pipeline)
 pip install pymupdf pytesseract pillow
+
+# v2 (markdown pipeline)
+pip install pymupdf4llm docling
+
 # Windows: install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
-# Linux: apt-get install tesseract-ocr tesseract-ocr-deu
+# Tesseract language packs needed: deu, fra, ita
 ```
 
 ### Step 1: Download PDFs
 
 ```bash
-cd data/pdfs
-bash download.sh                  # BBL (~142 PDFs, ~586 MB)
-bash download_armasuisse.sh       # armasuisse (~52 PDFs, ~459 MB)
-bash download_stadt_zuerich.sh    # Stadt Zürich (~36 PDFs, ~282 MB)
+# Original sources
+bash scripts/download_bbl.sh              # BBL (~144 PDFs)
+bash scripts/download_armasuisse.sh       # armasuisse (~53 PDFs)
+bash scripts/download_stadt_zuerich.sh    # Stadt Zürich (~36 PDFs)
+
+# New sources
+python scripts/download_stadt_bern.py     # Stadt Bern (~76 PDFs)
+python scripts/download_stadt_stgallen.py # Stadt St. Gallen (~78 PDFs)
+python scripts/download_kanton_aargau.py  # Kanton Aargau (~10 PDFs)
 ```
 
-### Step 2: Extract (single PDF)
+### Step 2a: Convert to Markdown (v2)
 
 ```bash
+# Single PDF
+python scripts/pdf_to_markdown.py data/pdfs/sample.pdf --verbose
+
+# All PDFs (uses PyMuPDF4LLM, falls back to Docling for failures)
+python scripts/pdf_to_markdown.py --all
+
+# Only one source
+python scripts/pdf_to_markdown.py --all --source bbl
+
+# Re-convert all (ignore hash cache)
+python scripts/pdf_to_markdown.py --all --force
+```
+
+### Step 2b: Extract to DB (v1 regex — works on raw text)
+
+```bash
+# Single PDF (verbose)
 python scripts/extract.py data/pdfs/bbl_verwaltung_2023_Zollikofen.pdf --verbose
+
+# All PDFs
+python scripts/extract_all.py
+
+# Only one source
+python scripts/extract_all.py --source bbl
+
+# Re-extract everything (ignore hash cache)
+python scripts/extract_all.py --force
 ```
 
-### Step 3: Extract (all PDFs)
-
-```bash
-python scripts/extract_all.py                    # all PDFs
-python scripts/extract_all.py --source bbl        # only BBL
-python scripts/extract_all.py --force             # re-extract everything
-python scripts/extract_all.py --dry-run           # preview only
-```
-
-### Step 4: Serve the App
+### Step 3: Serve
 
 ```bash
 python -m http.server 8080
@@ -136,144 +304,128 @@ python -m http.server 8080
 
 ---
 
-## extract.py — Processing Flow
+## extract.py — Processing Flow (v1)
 
-For each PDF, the script performs 7 steps:
-
-### 1. Identify
+### 1. Identify + Hash Check
 
 - Parse flat filename → source, category, original name
-- Compute SHA-256 hash of PDF file
-- Check `extraction_log`: if hash matches and `--force` not set, skip
+- Detect language from filename suffix (`_FR`, `_IT`, `_DE`)
+- Compute SHA-256 hash; skip if unchanged (unless `--force`)
 
-### 2. Extract Text (all pages)
+### 2. Extract Text
 
-- Open with PyMuPDF (`fitz.open()`)
-- For each page:
-  - Try `page.get_text()` — if >50 chars, mark as text page
-  - If <50 chars and Tesseract available: render to 300 DPI image, OCR with `deu` language
-- Concatenate all page texts
-- Record method: `pymupdf`, `ocr`, or `pymupdf+ocr`
+- Open with PyMuPDF
+- Per page: `get_text()` if >50 chars, else Tesseract OCR at 300 DPI
+- OCR language selected from filename: `deu`, `fra`, or `ita`
 
-### 3. Extract Images
+### 3. Normalize Text
 
-- For each page, extract embedded images via `page.get_images(full=True)`
-- Filter: skip images smaller than 80×80px (icons, decorative)
-- Save to `assets/images/projects/{id}/` as original format (JPEG/PNG)
-- Render page 1 as thumbnail → `assets/images/thumbnails/{id}.jpg` (400px wide, JPEG quality 85)
+- Fix PDF ligatures: `ﬂ` → `fl`, `ﬁ` → `fi`
+- Fix split words: `fl äche` → `fläche`
+- Merge multi-line BKP tables: `"1 \n Vorbereitungsarbeiten \n 444'000"` → `"1  Vorbereitungsarbeiten  444'000"`
+- Handle Unicode quotes: `'` (U+2019) treated as thousands separator
 
-### 4. Parse Structured Data
+### 4. Extract Structured Data
 
-Source-specific regex patterns applied to the full extracted text:
+| Function | Fields | Languages | Key Patterns |
+|---|---|---|---|
+| `extract_metadata()` | Client, user, architect, planners | DE/FR/IT | Label-after keywords with stop-label detection |
+| `extract_quantities()` | GF, GV, NGF, floors, workplaces, energy | DE/FR/IT | Exact + fuzzy fallback patterns, source-specific validation ranges |
+| `extract_costs()` | BKP 1-9, 20-29, eBKP-H A-Z | DE | Same-line, colon-separated, and two-line patterns |
+| `extract_benchmarks()` | CHF/m² GF, CHF/m³ GV | DE/FR | "BKP 2 / m² GF" + "CFC 2 / m² SP" patterns |
+| `extract_index_reference()` | Baukostenindex name, date, value | DE/FR | Baukostenindex + Indice des coûts patterns |
+| `extract_timeline()` | Planungsbeginn, Baubeginn, Bauende | DE/FR/IT | Keyword + date, normalized to ISO format |
+| `extract_description()` | Project description | DE/FR/IT | Section header detection + longest-paragraph fallback |
 
-| Function | Extracts | Key Patterns |
-|---|---|---|
-| `extract_metadata()` | Bauherrschaft, Nutzer, Architekt, Generalplaner, Generalunternehmer | Label keywords (DE/FR/IT) followed by text block |
-| `extract_quantities()` | GF, GV, NGF, floors, workplaces, energy standard | "Geschossfläche Total 28 810 m²", "Gebäudevolumen 95 220 m³" |
-| `extract_costs()` | BKP 1–29 + Anlagekosten | Two patterns: same-line ("2 Gebäude  63 572 000") and two-line (code on N, amount on N+1) |
-| `extract_benchmarks()` | CHF/m² GF, CHF/m³ GV | "BKP 2/m² GF  2 210" |
-| `extract_index_reference()` | Baukostenindex name, date, value, basis | "Baukostenindex Espace Mittelland, Oktober 2010  125.2" |
-| `extract_timeline()` | Planungsbeginn, Baubeginn, Bauende | Keyword + date text |
-| `extract_description()` | Project description | First paragraph after "Ausgangslage" / "Projektbeschrieb" |
-
-Swiss number parsing: handles space, thin-space, non-breaking space, and apostrophe as thousands separators.
-
-### 5. Compute Quality Grade
+### 5. Quality Grade
 
 | Grade | Criteria |
 |---|---|
-| **A** | BKP costs + GF + GV + metadata (architect or client) |
+| **A** | BKP 2 costs + GF + metadata (architect or client) |
 | **B** | Costs OR GF + metadata or description |
 | **C** | Metadata or description only |
-| **D** | Filename-only (no extractable text, OCR failed) |
-| **E** | Extraction error (corrupt PDF, crash) |
+| **D** | Filename-only (no extractable text) |
+| **E** | Extraction error (corrupt PDF, crash — logged with error message) |
 
-### 6. Upsert DB
+### 6. Geocode + Upsert
 
-- Match by `pdf_filename` (unique per project)
-- If exists: UPDATE all fields, DELETE + re-INSERT related records (costs, benchmarks, timeline)
-- If new: INSERT
-- Update `extraction_log` with hash, method, pages, chars, images, grade
-
-### 7. Print Summary
-
-```
-[A] Eichenweg 1, Neubau Verwaltungsgebäude  (pymupdf, 4409 chars, 12 images)
-```
+- Swiss projects: geo.admin.ch search API (free, WGS84)
+- Foreign projects: Geoapify API
+- Upsert by `pdf_filename`; UPDATE existing or INSERT new
+- Log to `extraction_log` with hash, method, grade, structured `fields_extracted` JSON
 
 ---
 
-## Per-Source Extraction Strategy
+## Source-Specific Configs
 
-```mermaid
-flowchart TD
-    PDF[PDF File] --> SRC{Source?}
-
-    SRC -->|BBL| BBL[Regex: high success<br/>Structured metadata header<br/>Two-column BKP table<br/>Grundmengen box]
-    SRC -->|armasuisse| ARM[OCR + Regex<br/>~50% image-only<br/>Multi-language DE/FR/IT]
-    SRC -->|Stadt Zürich| ZH[OCR + Regex<br/>Design-heavy brochures<br/>Costs in prose]
-    SRC -->|Unknown| FALL[Full pipeline:<br/>text → OCR → regex]
+```python
+SOURCE_CONFIGS = {
+    "bbl":            { "languages": ["deu"],              "layout": "structured_table" },
+    "armasuisse":     { "languages": ["deu","fra","ita"],  "layout": "variable" },
+    "stadt-zuerich":  { "languages": ["deu"],              "layout": "prose_heavy" },
+    "stadt-bern":     { "languages": ["deu"],              "layout": "structured_table" },
+    "stadt-stgallen": { "languages": ["deu"],              "layout": "structured_table" },
+    "kanton-aargau":  { "languages": ["deu"],              "layout": "structured_table" },
+}
 ```
+
+Each config controls: OCR language selection, validation ranges for GF/GV/costs, and layout hints for future markdown extraction.
 
 ---
 
 ## Extraction Quality Tracking
 
-### Document Level (`extraction_log` table)
+### Document Level (`extraction_log`)
 
 | Field | Description |
 |---|---|
-| `pdf_hash` | SHA-256 of PDF file (skip re-extraction if unchanged) |
-| `method` | `pymupdf`, `ocr`, or `pymupdf+ocr` |
-| `pages_total` | Total pages in PDF |
-| `pages_with_text` | Pages with >50 chars PyMuPDF text |
-| `pages_ocr` | Pages where Tesseract was used |
-| `text_chars` | Total extracted characters |
-| `images_found` | Embedded images extracted |
+| `pdf_hash` | SHA-256 (first 16 chars) — skip unchanged PDFs |
+| `method` | `pymupdf`, `ocr`, `pymupdf+ocr`, or `error` |
 | `quality_grade` | A/B/C/D/E |
-| `fields_extracted` | JSON: which fields were found and confidence |
+| `fields_extracted` | JSON with value + confidence per field |
+| `extraction_error` | Error message for Grade E failures |
 
-### Field Level (`fields_extracted` JSON)
+### Field Confidence
 
 ```json
-{"gf_m2": "high", "gv_m3": "high", "cost": "high", "architect": "high", "description": "high"}
+{
+  "gf_m2": {"value": 5600.0, "confidence": "high"},
+  "cost":  {"value": 11649000, "confidence": "medium"},
+  "architect": {"value": "GMT Architekten AG", "confidence": "high"}
+}
 ```
 
-Confidence levels: `high` (regex match on structured text), `medium` (OCR text), `low` (inferred)
+- `high`: regex match on native text layer
+- `medium`: regex match on OCR text
+- `low`: inferred or fuzzy match
 
 ---
 
 ## Adding a New Source
 
-1. **Research the source** — verify PDFs contain realised costs (see [SOURCES.md](SOURCES.md))
-2. **Create download script** — `data/pdfs/download_{source}.sh`
-3. **Use flat naming** — `{source}_{category}_{original}.pdf`
-4. **Register source** in `scripts/extract.py`:
-   - Add to `SOURCES` dict
-   - Add category to `CATEGORY_MAP` if new
-5. **Test on 3–5 sample PDFs**:
-   ```bash
-   python scripts/extract.py data/pdfs/new-source_cat_sample.pdf --verbose --dry-run
-   ```
-6. **Add source-specific patterns** if needed (different labels, cost table format)
-7. **Run batch**: `python scripts/extract_all.py --source new-source`
-8. **Update [SOURCES.md](SOURCES.md)** with the new source details
+1. **Verify cost data** — download 3-5 sample PDFs, check for BKP costs + SIA 416 quantities
+2. **Create download script** — `scripts/download_{source}.py`
+3. **Register source** in `extract.py`: add to `SOURCES`, `SOURCE_CONFIGS`, `CATEGORY_MAP`, `CANTON_MAP`
+4. **Test samples**: `python scripts/extract.py data/pdfs/new_sample.pdf --verbose --dry-run`
+5. **Add source-specific patterns** if needed
+6. **Batch extract**: `python scripts/extract_all.py --source new-source`
+7. **Update [SOURCES.md](SOURCES.md)**
 
 ---
 
 ## Known Limitations
 
-### Extraction
-- **OCR quality varies** — Tesseract works well for clean German prints, poorly for design-heavy brochures with overlapping text/images
-- **Two-column BKP layout** — interleaved lines are handled (code on line N, amount on N+1) but irregular spacing occasionally causes misses
-- **French/Italian PDFs** (~5) — partially handled (alternate label keywords) but coverage incomplete
-- **armasuisse filenames** are often UUIDs — project info comes entirely from PDF text
+### Current (v1)
 
-### Data Quality
-- **No BPI index adjustment** — costs stored as-recorded at different price levels
+- **Stadt Zürich**: 0% cost extraction — costs in prose paragraphs, not tables
+- **armasuisse**: ~49% cost extraction — multi-line tables, variable layouts
+- **No BPI adjustment** — costs stored at recorded price levels, not inflation-adjusted
 - **No deduplication** across sources
-- **Municipality-to-canton mapping** hardcoded for ~60 known municipalities
+- **Municipality-to-canton mapping** hardcoded for ~70 known municipalities
 
-### Pipeline
-- **No incremental hash check** yet — `--force` re-extracts everything; hash-based skip is in extraction_log but not yet enforced
-- **PyMuPDF memory** — extract_all.py runs each PDF as a separate subprocess, avoiding the segfault issue naturally
+### Planned Fixes (v2)
+
+- **Docling markdown conversion** → preserves table structure for all sources
+- **LLM extraction fallback** → handles prose costs (Stadt Zürich) and layout variance
+- **BFS Baupreisindex integration** → inflation-adjusted Kennwerte
+- **Cross-source deduplication** → match by location + year + building type
