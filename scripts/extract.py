@@ -28,7 +28,7 @@ from PIL import Image
 
 # Ensure sibling scripts are importable regardless of working directory
 sys.path.insert(0, str(Path(__file__).parent))
-from pdf_to_markdown import convert_pdf as pdf_to_markdown
+from pdf_to_markdown import convert_pdf as pdf_to_markdown, compute_hash as compute_pdf_hash
 from extract_from_markdown import extract_from_markdown
 
 # ---------------------------------------------------------------------------
@@ -232,11 +232,12 @@ def infer_arbeiten_type(name):
         return "UMBAU_ERWEITERUNG"
     if any(k in nl for k in ["sanierung", "gesamtsanierung", "instandsetzung",
                               "restaurierung", "renovation", "konservierung", "sicherung",
-                              "assainissement", "risanamento"]):
+                              "assainissement", "rénovation", "restauration",
+                              "risanamento", "ristrutturazione"]):
         return "UMBAU_SANIERUNG"
-    if any(k in nl for k in ["umbau", "umnutzung", "transformation"]):
+    if any(k in nl for k in ["umbau", "umnutzung", "transformation", "trasformazione"]):
         return "UMBAU"
-    if any(k in nl for k in ["optimierung", "anpassung"]):
+    if any(k in nl for k in ["optimierung", "anpassung", "optimisation", "adaptation"]):
         return "UMBAU"
     return "UMBAU_SANIERUNG"
 
@@ -340,10 +341,6 @@ def ensure_schema(conn):
     if "extraction_error" not in log_cols:
         cur.execute("ALTER TABLE extraction_log ADD COLUMN extraction_error TEXT")
     conn.commit()
-
-
-def compute_pdf_hash(pdf_path):
-    return hashlib.sha256(Path(pdf_path).read_bytes()).hexdigest()[:16]
 
 
 def should_skip(conn, filename, pdf_hash, force=False):
@@ -476,6 +473,7 @@ def process_pdf(pdf_path, force=False, verbose=False, dry_run=False):
 
     # Hash-based dedup
     pdf_hash = compute_pdf_hash(pdf_path)
+    conn = None
     if not dry_run:
         conn = sqlite3.connect(str(DB_PATH))
         ensure_schema(conn)
@@ -484,7 +482,6 @@ def process_pdf(pdf_path, force=False, verbose=False, dry_run=False):
             if verbose:
                 print(f"  SKIP (unchanged)")
             return
-        conn.close()
 
     try:
         # Stage 1: PDF -> Markdown
@@ -531,10 +528,7 @@ def process_pdf(pdf_path, force=False, verbose=False, dry_run=False):
             print(f"  [DRY RUN] grade={grade}")
             return
 
-        # Extract images from PDF
-        conn = sqlite3.connect(str(DB_PATH))
-        ensure_schema(conn)
-
+        # Extract images from PDF (use temp_id, rename after upsert if needed)
         existing = conn.execute("SELECT id FROM bauprojekt WHERE pdf_filename=?", (filename,)).fetchone()
         temp_id = existing[0] if existing else (conn.execute("SELECT MAX(id) FROM bauprojekt").fetchone()[0] or 0) + 1
 

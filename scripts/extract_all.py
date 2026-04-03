@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -35,6 +36,10 @@ def main():
     print(f"Script: {SCRIPT}")
     print()
 
+    if not pdfs:
+        print("No PDFs to process.")
+        return
+
     extra_args = []
     if args.force:
         extra_args.append("--force")
@@ -55,7 +60,7 @@ def main():
                 capture_output=not args.verbose,
                 text=True,
                 timeout=120,
-                env={**__import__("os").environ, "PYTHONIOENCODING": "utf-8"},
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             )
             if result.returncode == 0:
                 success += 1

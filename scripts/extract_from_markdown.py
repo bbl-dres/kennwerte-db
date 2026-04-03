@@ -84,7 +84,7 @@ def parse_md_tables(text):
             # Skip separator rows (|---|---|)
             if re.match(r"^\|[\s\-:|]+\|$", line):
                 continue
-            cells = [c.strip() for c in line.split("|")[1:-1]]
+            cells = [re.sub(r"\*\*|<br>", " ", c).strip() for c in line.split("|")[1:-1]]
             current_table.append(cells)
         else:
             if current_table:
@@ -196,7 +196,7 @@ def extract_costs_from_tables(tables):
                 continue
 
             # Clean cells: remove bold markers, <br> tags
-            cells = [re.sub(r"\*\*|<br>", " ", c).strip() for c in row]
+            cells = row
 
             # Look for BKP numeric codes (1-29) with amounts
             for i, cell in enumerate(cells):
@@ -246,7 +246,7 @@ def extract_costs_from_tables(tables):
                             break
 
             # Also look for "Baukosten" label rows with costs in subsequent rows
-            first_cell = re.sub(r"\*\*|<br>", " ", row[0]).strip() if row else ""
+            first_cell = row[0] if row else ""
 
             # "Baukosten|Vorbereitungsarbeiten|CHF|11 000" pattern
             if len(cells) >= 3:
@@ -278,7 +278,7 @@ def extract_quantities_from_tables(tables):
 
     for table in tables:
         for row in table:
-            cells = [re.sub(r"\*\*|<br>", " ", c).strip() for c in row]
+            cells = row
             full_row = " ".join(cells).lower()
 
             # GF patterns
@@ -345,7 +345,7 @@ def extract_metadata_from_tables(tables):
 
     for table in tables:
         for row in table:
-            cells = [re.sub(r"\*\*|<br>", " ", c).strip() for c in row]
+            cells = row
             if not cells:
                 continue
 
@@ -375,7 +375,7 @@ def extract_timeline_from_tables(tables):
 
     for table in tables:
         for row in table:
-            cells = [re.sub(r"\*\*|<br>", " ", c).strip() for c in row]
+            cells = row
             full_lower = " ".join(cells).lower()
 
             for milestone, keywords in patterns.items():

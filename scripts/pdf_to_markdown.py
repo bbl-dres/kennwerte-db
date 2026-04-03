@@ -78,10 +78,14 @@ def save_hashes(hashes):
 # Converters
 # ---------------------------------------------------------------------------
 
+_docling_converter = None
+
 def convert_with_docling(pdf_path, verbose=False):
     """Convert PDF to Markdown using Docling (best table extraction)."""
-    converter = DocumentConverter()
-    result = converter.convert(str(pdf_path))
+    global _docling_converter
+    if _docling_converter is None:
+        _docling_converter = DocumentConverter()
+    result = _docling_converter.convert(str(pdf_path))
     md = result.document.export_to_markdown()
     return md
 
