@@ -171,12 +171,14 @@ def extract_costs_from_text(text):
         val = parse_number(m.group(1))
         if val and 10 <= val <= 200_000:
             quantities.setdefault("hnf_m2", val)
-    # Benchmarks
-    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
+    # Benchmarks — separate patterns for m² and m³
+    m2_unit = r"m\s*(?:\[?\s*2\s*\]?|[2\u00b2])"
+    m3_unit = r"m\s*(?:\[?\s*3\s*\]?|[3\u00b3])"
+    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m2_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
         val = parse_number(m.group(1))
         if val and 200 <= val <= 20_000:
             quantities.setdefault("chf_m2_gf_bkp2", val)
-    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
+    for m in re.finditer(rf"Kosten\s+BKP\s*2\s*/\s*{m3_unit}\s*(?:\(SIA\s*416\))?\s*([\d\s'\u2019.]+)\s*(?:CHF)?", expanded, re.IGNORECASE):
         val = parse_number(m.group(1))
         if val and 50 <= val <= 5_000:
             quantities.setdefault("chf_m3_gv_bkp2", val)

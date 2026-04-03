@@ -476,7 +476,6 @@ function showDetail(id) {
             <span class="breadcrumb-item breadcrumb-current">${esc(name)}</span>
         </div>
         <div class="detail-breadcrumb-actions">
-            ${p.pdf_filename ? `<a class="btn btn-outline btn-sm" href="data/pdfs/${encodeURIComponent(p.pdf_filename)}" target="_blank">PDF öffnen</a>` : ''}
             <button class="btn btn-outline btn-sm" id="detailBackBtn">
                 <span class="material-icons-outlined">arrow_back</span> Zurück zur Liste
             </button>
@@ -550,6 +549,7 @@ function showDetail(id) {
 
             <div class="sia-section-title" style="margin-top:var(--space-3)">Quelle</div>
             ${detailField('Datenquelle', p.data_source ? srcTagHTML(p.data_source) : null)}
+            ${p.pdf_filename ? `<div class="detail-field"><span class="detail-label">PDF</span><span class="detail-value"><a href="data/pdfs/${encodeURIComponent(p.pdf_filename)}" target="_blank" class="btn btn-outline btn-sm">PDF öffnen</a></span></div>` : ''}
         </div></div>
         <div class="detail-card"><div class="detail-card-header">Standort</div><div class="detail-card-body standort-card">
             <div class="standort-coords">

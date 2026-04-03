@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import time
+import threading
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -163,9 +164,10 @@ def convert_pdf(pdf_path, force=False, verbose=False):
     MD_DIR.mkdir(parents=True, exist_ok=True)
     md_path.write_text(md, encoding="utf-8")
 
-    # Update hash
-    hashes[pdf_path.name] = pdf_hash
-    save_hashes(hashes)
+    # Update hash (skip in parallel mode — main process saves hashes at end)
+    if not os.environ.get("_PDF2MD_PARALLEL"):
+        hashes[pdf_path.name] = pdf_hash
+        save_hashes(hashes)
 
     if verbose:
         print(f" {len(md)} chars, {elapsed:.1f}s ({method})")
@@ -232,7 +234,9 @@ def main():
                     failed += 1
                     print(f"{prefix} FAILED: {pdf.name[:50]} -- {method}")
         else:
-            # Parallel
+            # Parallel — set flag so workers don't write hash file
+            os.environ["_PDF2MD_PARALLEL"] = "1"
+            completed_hashes = {}
             with ProcessPoolExecutor(max_workers=workers) as executor:
                 future_to_pdf = {
                     executor.submit(convert_pdf, pdf, args.force, False): pdf
@@ -248,6 +252,7 @@ def main():
                             skipped += 1
                         elif md_path:
                             success += 1
+                            completed_hashes[pdf.name] = compute_hash(pdf)
                             print(f"{prefix} [{method}] {pdf.name[:50]}  ({md_path.stat().st_size / 1024:.0f} KB)")
                         else:
                             failed += 1
@@ -255,6 +260,12 @@ def main():
                     except Exception as e:
                         failed += 1
                         print(f"{prefix} ERROR: {pdf.name[:50]} -- {e}")
+            # Save all hashes at once after parallel run
+            os.environ.pop("_PDF2MD_PARALLEL", None)
+            if completed_hashes:
+                hashes = load_hashes()
+                hashes.update(completed_hashes)
+                save_hashes(hashes)
 
         elapsed = time.time() - start
         print(f"\n{'=' * 60}")

@@ -108,7 +108,15 @@
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py --all)",
       "Bash(PYTHONIOENCODING=utf-8 grep -l \"BKP\\\\|Baukosten\\\\|Kosten\\\\|Vorbereitungsarbeiten\\\\|Gebäude\" data/markdown/armasuisse_*)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.md)",
-      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/armasuisse_militaer_6-S-bautendoku_emmen_DE.md)"
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/armasuisse_militaer_6-S-bautendoku_emmen_DE.md)",
+      "Bash(rm scripts/download_kanton_aargau.sh)",
+      "Bash(rm -rf scripts/__pycache__)",
+      "Bash(head -50 /c/Users/DavidRasner/Documents/GitHub/kennwerte-db/scripts/download_*.py)",
+      "Bash(python3 -c \"from scripts.pdf_to_markdown import convert_pdf\")",
+      "Bash(python3 -c \"from scripts.pdf_to_markdown import convert_pdf; from scripts.extract_from_markdown import extract_from_markdown; print\\('Import OK'\\)\")",
+      "Bash(python3 -c \"from pdf_to_markdown import convert_pdf; print\\('Direct import OK'\\)\")",
+      "Bash(python3 -c \"from scripts.pdf_to_markdown import convert_pdf; print\\('OK'\\)\")",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/stadt-stgallen_hochbau_142_movenstr14.pdf\" --verbose --dry-run)"
     ]
   }
 }
