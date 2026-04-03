@@ -118,7 +118,8 @@
       "Bash(python3 -c \"from scripts.pdf_to_markdown import convert_pdf; print\\('OK'\\)\")",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/stadt-stgallen_hochbau_142_movenstr14.pdf\" --verbose --dry-run)",
       "Bash(PYTHONIOENCODING=utf-8 grep -i \"geschoss\\\\|m2\\\\|m²\\\\|GF\\\\|fläche\" data/markdown/stadt-bern_hochbau_140715_web_erweiterung_gewchsha*.md)",
-      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/stadt-stgallen_hochbau_142_movenstr14.md)"
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/stadt-stgallen_hochbau_142_movenstr14.md)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract.py \"data/pdfs/stadt-stgallen_hochbau_142_movenstr14.pdf\" --force --verbose)"
     ]
   }
 }
