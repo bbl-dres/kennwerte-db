@@ -101,7 +101,12 @@
       "Bash(PYTHONIOENCODING=utf-8 python scripts/pdf_to_markdown.py --all --force)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/stadt-stgallen_hochbau_142_movenstr14.md --verbose)",
       "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py data/markdown/armasuisse_militaer_AusbildungsgebaeudeGeneralstabsschuleKriensLU_DE.md --verbose)",
-      "Bash(sqlite3 data/kennwerte.db \".tables\")"
+      "Bash(sqlite3 data/kennwerte.db \".tables\")",
+      "Bash(ls -t c:/Users/DavidRasner/Documents/GitHub/kennwerte-db/data/markdown/*.md)",
+      "Bash(ls data/markdown/*.md)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/pdf_to_markdown.py --all --workers 6)",
+      "Bash(PYTHONIOENCODING=utf-8 python scripts/extract_from_markdown.py --all)",
+      "Bash(PYTHONIOENCODING=utf-8 grep -l \"BKP\\\\|Baukosten\\\\|Kosten\\\\|Vorbereitungsarbeiten\\\\|Gebäude\" data/markdown/armasuisse_*)"
     ]
   }
 }

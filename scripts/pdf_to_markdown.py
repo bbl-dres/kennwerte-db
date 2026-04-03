@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 # Try Docling first, fall back to PyMuPDF4LLM
@@ -183,6 +184,7 @@ def main():
     parser.add_argument("--source", help="Filter by source prefix (bbl, armasuisse, etc.)")
     parser.add_argument("--force", action="store_true", help="Re-convert even if unchanged")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--workers", "-w", type=int, default=1, help="Parallel workers (default: 1, try 4-8)")
     args = parser.parse_args()
 
     print(f"PDF to Markdown converter")
@@ -205,28 +207,54 @@ def main():
         if args.source:
             pdfs = [p for p in pdfs if p.name.startswith(args.source + "_")]
 
+        workers = min(args.workers, len(pdfs)) if args.workers > 1 else 1
         print(f"  PDFs found: {len(pdfs)}")
+        print(f"  Workers: {workers}")
         print(f"  Output: {MD_DIR.resolve()}")
         print()
 
         success, skipped, failed = 0, 0, 0
+        done = 0
         start = time.time()
 
-        for i, pdf in enumerate(pdfs):
-            prefix = f"[{i + 1}/{len(pdfs)}]"
-            if args.verbose:
-                print(f"{prefix} {pdf.name[:60]}")
-
-            md_path, method = convert_pdf(pdf, force=args.force, verbose=args.verbose)
-            if md_path and method == "cached":
-                skipped += 1
-            elif md_path:
-                success += 1
-                if not args.verbose:
-                    print(f"{prefix} [{method}] {pdf.name[:50]}  ({md_path.stat().st_size / 1024:.0f} KB)")
-            else:
-                failed += 1
-                print(f"{prefix} FAILED: {pdf.name[:50]} — {method}")
+        if workers <= 1:
+            # Sequential
+            for i, pdf in enumerate(pdfs):
+                prefix = f"[{i + 1}/{len(pdfs)}]"
+                md_path, method = convert_pdf(pdf, force=args.force, verbose=args.verbose)
+                if md_path and method == "cached":
+                    skipped += 1
+                elif md_path:
+                    success += 1
+                    if not args.verbose:
+                        print(f"{prefix} [{method}] {pdf.name[:50]}  ({md_path.stat().st_size / 1024:.0f} KB)")
+                else:
+                    failed += 1
+                    print(f"{prefix} FAILED: {pdf.name[:50]} -- {method}")
+        else:
+            # Parallel
+            with ProcessPoolExecutor(max_workers=workers) as executor:
+                future_to_pdf = {
+                    executor.submit(convert_pdf, pdf, args.force, False): pdf
+                    for pdf in pdfs
+                }
+                for future in as_completed(future_to_pdf):
+                    done += 1
+                    pdf = future_to_pdf[future]
+                    prefix = f"[{done}/{len(pdfs)}]"
+                    try:
+                        md_path, method = future.result()
+                        if md_path and method == "cached":
+                            skipped += 1
+                        elif md_path:
+                            success += 1
+                            print(f"{prefix} [{method}] {pdf.name[:50]}  ({md_path.stat().st_size / 1024:.0f} KB)")
+                        else:
+                            failed += 1
+                            print(f"{prefix} FAILED: {pdf.name[:50]} -- {method}")
+                    except Exception as e:
+                        failed += 1
+                        print(f"{prefix} ERROR: {pdf.name[:50]} -- {e}")
 
         elapsed = time.time() - start
         print(f"\n{'=' * 60}")
