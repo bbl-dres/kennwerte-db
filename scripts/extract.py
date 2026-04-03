@@ -198,6 +198,11 @@ def parse_filename(original, category):
 
     parts = [p.strip() for p in re.split(r"[,_]", rest) if p.strip()]
     municipality = parts[0] if parts else None
+    # Skip numeric-only "municipality" (it's a document number, not a place)
+    if municipality and re.match(r"^\d+$", municipality):
+        municipality = None
+        # Use remaining parts for project name
+        parts = parts[1:] if len(parts) > 1 else parts
     country = None
     if category == "ausland" and len(parts) >= 3:
         municipality, country = parts[0], parts[1]
@@ -221,7 +226,7 @@ def parse_filename(original, category):
 
     return dict(completion_date=completion_date, completion_year=year,
                 municipality=municipality, canton=canton, country=country,
-                project_name=project_name)
+                project_name=project_name if project_name else rest)
 
 
 def infer_arbeiten_type(name):
@@ -485,7 +490,7 @@ def process_pdf(pdf_path, force=False, verbose=False, dry_run=False):
 
     try:
         # Stage 1: PDF -> Markdown
-        md_path, md_method = pdf_to_markdown(pdf_path, force=force, verbose=verbose)
+        md_path, md_method = pdf_to_markdown(pdf_path, force=False, verbose=verbose)
         if not md_path or md_method == "no converter available":
             raise RuntimeError(f"Markdown conversion failed: {md_method}")
 
@@ -498,6 +503,14 @@ def process_pdf(pdf_path, force=False, verbose=False, dry_run=False):
 
         # Parse filename for metadata
         file_info = parse_filename(original, category)
+
+        # Default municipality/canton for sources where filenames don't contain location
+        SOURCE_DEFAULTS = {
+            "stadt-stgallen": ("St. Gallen", "SG"),
+            "stadt-bern": ("Bern", "BE"),
+        }
+        if not file_info["municipality"] and source in SOURCE_DEFAULTS:
+            file_info["municipality"], file_info["canton"] = SOURCE_DEFAULTS[source]
 
         # Quality grade
         grade = compute_quality_grade(
