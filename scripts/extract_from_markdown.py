@@ -72,11 +72,24 @@ BKP_NAME_TO_CODE.update({
 # Number parsing
 # ---------------------------------------------------------------------------
 
-def parse_number(s):
-    """Parse Swiss-formatted numbers: 11'649'000, 11 649 000, 2'080.00, etc."""
+def parse_number(s, max_value=999_999_999):
+    """Parse Swiss-formatted numbers: 11'649'000, 11 649 000, 2'080.00, etc.
+    Returns None if the result exceeds max_value (likely concatenated numbers)."""
     if not s:
         return None
     s = s.strip()
+    # Detect concatenated numbers: "11250000 150000" (two large numbers separated by space)
+    # vs Swiss thousands: "457 000" (one number with space separator)
+    parts = s.split()
+    if len(parts) >= 2 and all(re.match(r"^[\d']+$", p) for p in parts):
+        # Check if this looks like Swiss thousands (groups of 3) or two separate numbers
+        # "457 000" → one number (second part is 3 digits = thousands group)
+        # "11250000 150000" → two numbers (both > 999)
+        if all(len(p) <= 3 for p in parts[1:]):
+            pass  # Swiss thousands — keep as-is
+        else:
+            # Multiple independent numbers — take only the first one
+            s = parts[0]
     s = s.replace("\u2009", "").replace("\u00a0", "")
     s = s.replace("\u2019", "").replace("'", "").replace("\u0027", "")
     s = re.sub(r"\s+", "", s)
@@ -84,7 +97,10 @@ def parse_number(s):
     # Remove trailing unit suffixes
     s = re.sub(r"\s*(CHF|m[23²³]|/m[23²³]).*$", "", s)
     try:
-        return float(s)
+        val = float(s)
+        if val > max_value:
+            return None  # Likely concatenated numbers
+        return val
     except ValueError:
         return None
 
@@ -301,6 +317,27 @@ def extract_costs_from_tables(tables):
     return costs
 
 
+def _find_quantity_in_row(cells, unit_pattern, min_val, max_val):
+    """Find a numeric value in a table row, validating the adjacent cell contains the expected unit.
+    Returns the first valid value, or None."""
+    for i, cell in enumerate(cells):
+        val = parse_number(cell)
+        if val and min_val <= val <= max_val:
+            # Check adjacent cells for unit confirmation
+            neighbors = []
+            if i > 0: neighbors.append(cells[i - 1].lower())
+            if i + 1 < len(cells): neighbors.append(cells[i + 1].lower())
+            context = cell.lower() + " " + " ".join(neighbors)
+            if re.search(unit_pattern, context):
+                return val
+    # Fallback: return first valid number if no unit confirmation possible
+    for cell in cells:
+        val = parse_number(cell)
+        if val and min_val <= val <= max_val:
+            return val
+    return None
+
+
 def extract_quantities_from_tables(tables):
     """Extract GF, GV, NGF, HNF from markdown tables."""
     q = {}
@@ -310,19 +347,19 @@ def extract_quantities_from_tables(tables):
             cells = row
             full_row = " ".join(cells).lower()
 
-            # GF patterns
-            if any(k in full_row for k in ["geschossfläche", "geschossflache", "geschossfl", "gf"]) and "m" in full_row:
-                for cell in cells:
-                    val = parse_number(cell)
-                    if val and 50 <= val <= 200_000:
+            # GF patterns — must have m² context, NOT m³
+            if any(k in full_row for k in ["geschossfläche", "geschossflache", "geschossfl"]) and "m" in full_row:
+                # Check if this row specifically mentions m² (not m³)
+                if re.search(r"m[2²]|m\s*2\b", full_row) or not re.search(r"m[3³]", full_row):
+                    val = _find_quantity_in_row(cells, r"m[2²\s]*$|m\s*2", 50, 200_000)
+                    if val:
                         q.setdefault("gf_m2", val)
 
-            # GV patterns
-            if any(k in full_row for k in ["gebäudevolumen", "gebaudevolumen", "umbauter raum", "gv"]) and "m" in full_row:
-                for cell in cells:
-                    val = parse_number(cell)
-                    if val and 100 <= val <= 1_000_000:
-                        q.setdefault("gv_m3", val)
+            # GV patterns — must have m³ context
+            if any(k in full_row for k in ["gebäudevolumen", "gebaudevolumen", "umbauter raum"]) and "m" in full_row:
+                val = _find_quantity_in_row(cells, r"m[3³\s]*$|m\s*3", 100, 1_000_000)
+                if val:
+                    q.setdefault("gv_m3", val)
 
             # NGF
             if any(k in full_row for k in ["nettogeschoss", "ngf"]) and "m" in full_row:
