@@ -1,10 +1,10 @@
-<p align="center">
+<p>
   <img src="assets/Social1.jpg" alt="kennwerte-db — PDFs to structured construction cost benchmarks" width="800">
 </p>
 
-<h1 align="center">kennwerte-db</h1>
+<h1>kennwerte-db</h1>
 
-<p align="center">
+<p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/SQLite-in--browser-003B57?logo=sqlite&logoColor=white" alt="SQLite">
   <img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript">
@@ -13,15 +13,19 @@
   <img src="https://img.shields.io/badge/deploy-GitHub_Pages-222?logo=github&logoColor=white" alt="GitHub Pages">
 </p>
 
-<p align="center">
+<p>
   Open-source construction cost benchmark database for Swiss public buildings.<br>
   Collects, structures, and presents cost Kennwerte (CHF/m² GF, CHF/m³ GV, BKP/eBKP-H breakdowns)<br>
   from realised projects to support early-stage cost estimation and portfolio-level cost analysis.
 </p>
 
-<p align="center">
-  <a href="https://bbl-dres.github.io/kennwerte-db/"><strong>Live Demo</strong></a>
-</p>
+> [!CAUTION]
+> **This is an unofficial mockup for demonstration purposes only.**
+> All data is fictional. Not all features are fully functional. This project serves as a visual and conceptual prototype — it is not intended for production use.
+
+## Preview
+
+Live Demo: https://bbl-dres.github.io/kennwerte-db/
 
 <table>
   <tr>
