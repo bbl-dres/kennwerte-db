@@ -18,12 +18,10 @@ Construction-cost benchmark explorer for Swiss public buildings, including area-
 
 **Live demo:** https://bbl-dres.github.io/kennwerte-db/
 
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
-  <tr>
-    <td width="50%" valign="top"><img src="assets/preview-1.jpg" alt="Construction-cost benchmark project gallery" width="100%"/></td>
-    <td width="50%" valign="top"><img src="assets/preview-2.jpg" alt="Construction-cost benchmark project details" width="100%"/></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="assets/preview-1.jpg" alt="Construction-cost benchmark project gallery" width="49%"/>
+  <img src="assets/preview-2.jpg" alt="Construction-cost benchmark project details" width="49%"/>
+</p>
 
 ## Features
 
