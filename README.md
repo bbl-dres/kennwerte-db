@@ -2,12 +2,12 @@
 
 <p align="center">
   <a href="https://bbl-dres.github.io/kennwerte-db/">
-    <img src="assets/Social1.jpg" alt="Construction documents converted into structured cost benchmarks" width="100%">
+    <img src="assets/social-preview.jpg" alt="Construction documents converted into structured cost benchmarks" width="100%">
   </a>
 </p>
 
-[![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-222?logo=github&logoColor=white)](https://bbl-dres.github.io/kennwerte-db/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-2ea44f?logo=github&logoColor=white)](https://bbl-dres.github.io/kennwerte-db/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > [!CAUTION]
 > Unofficial research prototype. Source documents are public, but extracted benchmark data can be incomplete or incorrect and must be verified before use.
@@ -17,6 +17,13 @@ Construction-cost benchmark explorer for Swiss public buildings, including area-
 ## Demo
 
 **Live demo:** https://bbl-dres.github.io/kennwerte-db/
+
+<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+  <tr>
+    <td width="50%" valign="top"><img src="assets/preview-1.jpg" alt="Construction-cost benchmark project gallery" width="100%"/></td>
+    <td width="50%" valign="top"><img src="assets/preview-2.jpg" alt="Construction-cost benchmark project details" width="100%"/></td>
+  </tr>
+</table>
 
 ## Features
 
